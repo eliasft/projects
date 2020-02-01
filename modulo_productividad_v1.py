@@ -1,3 +1,16 @@
+import warnings
+
+plt.style.use('seaborn-white')
+
+pd.set_option('display.max_rows', 100_000_000)
+pd.set_option('display.max_columns', 100_000_000)
+pd.set_option('display.width', 1_000)
+pd.set_option('precision', 2)
+pd.options.display.float_format = '{:,.2f}'.format
+
+warnings.filterwarnings("ignore")
+
+
 def productividad(hidrocarburo):
     
     global unique_well_list
@@ -6,6 +19,11 @@ def productividad(hidrocarburo):
     global gasto_aceite
     global perfil
     global df
+    global estadistica
+    global tipo1
+    global tipo2
+    global perfil1
+    global perfil2
     
     tic=timeit.default_timer()
     
@@ -45,7 +63,7 @@ def productividad(hidrocarburo):
         plt.show()
 
         #Generacion de archivo de resultados
-        campo.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
         return campo
     
@@ -86,7 +104,7 @@ def productividad(hidrocarburo):
         return (df[time_column]-df[date_first_online_column]).dt.days
 
     def get_min_or_max_value_in_column_by_group(dataframe, group_by_column, calc_column, calc_type):
-        global value
+ 
         """
         This function obtains the min or max value for a column, with a group by applied. For example,
         it could return the earliest (min) RecordDate for each API number in a dataframe 
@@ -103,7 +121,7 @@ def productividad(hidrocarburo):
         return value
 
     def get_max_initial_production(df, number_first_months, variable_column, date_column):
-        global df_beginning_production
+
         """
         This function allows you to look at the first X months of production, and selects 
         the highest production month as max initial production
@@ -212,6 +230,8 @@ def productividad(hidrocarburo):
         #Subset el data frame del campo por pozo
         serie_produccion=data_pozos_range[data_pozos_range.pozo==pozo]
         
+        serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change()
+        
         #Cálculo de la máxima producción inicial
         qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
         
@@ -255,13 +275,15 @@ def productividad(hidrocarburo):
         #Plot the data to visualize the equation fit
         #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
 
-        resultados=resultados.append(serie_produccion,sort=True)
+        resultados=resultados.append(serie_produccion,sort=False)
         gasto_aceite=gasto_aceite.append(Qi,sort=True)
-        
-    resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+    
+    estadistica=resultados.describe()
+
+    #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
 
     gasto_aceite=gasto_aceite.rename(columns={0:'Pozo',1:'Qi',2:'b',3:'di'})
-    gasto_aceite.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto_'+str(input_campo)+'.csv')
+    #gasto_aceite.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto_'+str(input_campo)+'.csv')
     
     #####################  PRONOSTICO Qo y RESULTADOS DCA   #####################
     
@@ -276,9 +298,6 @@ def productividad(hidrocarburo):
     df['dias']=pd.DatetimeIndex(fechas).day
     df['periodo']=periodo
     
-    display(gasto_aceite.describe(),
-            gasto_aceite.quantile([.1,.5,.9]))
-    
     q10=gasto_aceite.Qi.quantile(.1)
     q50=gasto_aceite.Qi.quantile(.5)
     q90=gasto_aceite.Qi.quantile(.9)
@@ -286,28 +305,91 @@ def productividad(hidrocarburo):
     d10=gasto_aceite.di.quantile(.1)
     d50=gasto_aceite.di.quantile(.5)
     d90=gasto_aceite.di.quantile(.9)
-    d=gasto_aceite.di.mean()
     
-    b=gasto_aceite.b.mean()
+    d=gasto_aceite.di.mean()
+    b=gasto_aceite.b.mean()    
+
+    criterio1=(gasto_aceite['Qi'] > q50)
+    tipo1=gasto_aceite.loc[criterio1]
+    
+    q10_1=tipo1.Qi.quantile(.1)
+    q50_1=tipo1.Qi.quantile(.5)
+    q90_1=tipo1.Qi.quantile(.9)
+    
+    d10_1=tipo1.di.quantile(.1)
+    d50_1=tipo1.di.quantile(.5)
+    d90_1=tipo1.di.quantile(.9)
+    
+    d1=tipo1.di.mean()
+    b1=tipo1.b.mean()    
+    
+    criterio2=(gasto_aceite['Qi'] <= q50)
+    tipo2=gasto_aceite.loc[criterio2]
+    
+        
+    q10_2=tipo2.Qi.quantile(.1)
+    q50_2=tipo2.Qi.quantile(.5)
+    q90_2=tipo2.Qi.quantile(.9)
+    
+    d10_2=tipo2.di.quantile(.1)
+    d50_2=tipo2.di.quantile(.5)
+    d90_2=tipo2.di.quantile(.9)
+    
+    d2=tipo2.di.mean()
+    b2=tipo2.b.mean()    
     
     perfil=pd.DataFrame()
-
+    perfil1=pd.DataFrame()
+    perfil2=pd.DataFrame()
+    
     for x in df:
         
-        perfil['mes']=x
+        perfil['mes']=df.periodo
         perfil['P10']=(q10/((1.0+b*d*df.periodo)**(1.0/b)))
         perfil['P50']=(q50/((1.0+b*d*df.periodo)**(1.0/b)))
         perfil['P90']=(q90/((1.0+b*d*df.periodo)**(1.0/b)))
-        
-    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+        perfil['Np']=((q50**b)/((b-1)*d))*((perfil.P50**(1-b))-(q50**(1-b)))
 
-    fig, ax = plt.subplots(figsize=(10,5))
-    ax.scatter(gasto_aceite.Qi,gasto_aceite.Pozo,color='Gray')
-    ax.set_xlabel('Gasto inicial Qi')
-    ax.set_ylabel('Pozo')
+    for x in df:
+        
+        perfil1['mes']=df.periodo
+        perfil1['P10']=(q10_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil1['P50']=(q50_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil1['P90']=(q90_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        
+    for x in df:
+        
+        perfil2['mes']=df.periodo
+        perfil2['P10']=(q10_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil2['P50']=(q50_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil2['P90']=(q90_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        
+    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil.csv')
+    perfil1.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil1.csv')
+    perfil2.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil2.csv')
+    
+    
+    fig5, ax5 = plt.subplots(figsize=(10,5))
+    ax5.scatter(gasto_aceite.Qi,gasto_aceite.Pozo,color='Gray')
+    ax5.scatter(tipo1.Qi,tipo1.Pozo,color='Blue',label='Pozo Tipo 1')
+    ax5.scatter(tipo2.Qi,tipo2.Pozo,color='Red',label='Pozo Tipo 2')
+    ax5.set_xlabel('Gasto inicial Qi')
+    ax5.set_ylabel('Pozo')
+    plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
+    plt.legend(loc='upper right')
     plt.show()
     
-    fig1, ax1 = plt.subplots(figsize=(10,5))
+    
+    display('P50 del campo:  '+str(gasto_aceite.Qi.quantile(.5)),
+            'P50 del Pozo Tipo 1:  '+str(tipo1.Qi.quantile(.5)),
+            'P50 del Pozo Tipo 2:  '+str(tipo2.Qi.quantile(.5)))
+
+    display('d50 del campo:  '+str(gasto_aceite.di.quantile(.5)),
+            'd50 del Pozo Tipo 1:  '+str(tipo1.di.quantile(.5)),
+            'd50 del Pozo Tipo 2:  '+str(tipo2.di.quantile(.5)))
+    
+    fig, ax = plt.subplots(figsize=(10,5))
     plt.hist(gasto_aceite.Qi, alpha=0.5, label='Qi',bins=10)
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
@@ -333,9 +415,15 @@ def productividad(hidrocarburo):
     plt.show()
 
     fig4, ax4 = plt.subplots(figsize=(10,5))    
-    ax4.plot(perfil.P10,label='Qo-P10')
+    #ax4.plot(perfil.P10,label='Qo-P10')
     ax4.plot(perfil.P50,label='Qo-P50')
-    ax4.plot(perfil.P90,label='Qo-P90')
+    #ax4.plot(perfil.P90,label='Qo-P90')
+    #ax4.plot(perfil1.P10,label='Qo1-P10')
+    ax4.plot(perfil1.P50,label='Qo1-P50')
+    #ax4.plot(perfil1.P90,label='Qo1-P90')
+    #ax4.plot(perfil2.P10,label='Qo2-P10')
+    ax4.plot(perfil2.P50,label='Qo2-P50')
+    #ax4.plot(perfil2.P90,label='Qo2-P90')
     plt.xlim(0,500)
     plt.ylim(0);
     ax4.set_xlabel('Mes')

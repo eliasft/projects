@@ -19,25 +19,13 @@ from datetime import datetime, timedelta,date
 
 import timeit
 
-import warnings
-
-plt.style.use('seaborn-white')
-
-pd.set_option('display.max_rows', 100_000_000)
-pd.set_option('display.max_columns', 100_000_000)
-pd.set_option('display.width', 1_000)
-pd.set_option('precision', 2)
-pd.options.display.float_format = '{:,.2f}'.format
-
-warnings.filterwarnings("ignore")
-
 def carga_bd():
     
     global mx_bd
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_bd.csv',
+    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_bd.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
