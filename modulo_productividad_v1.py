@@ -22,8 +22,10 @@ def productividad(hidrocarburo):
     global estadistica
     global tipo1
     global tipo2
+    global tipo3
     global perfil1
     global perfil2
+    global perfil3
     
     tic=timeit.default_timer()
     
@@ -49,12 +51,12 @@ def productividad(hidrocarburo):
         display('Número de pozos en ' +str(input_campo)+': '+str(len(unique_well_list)))
            
         #Estadistica descriptiva
-        display('Percentiles y estadistica descriptiva: ')
-        display(campo[hidrocarburo].quantile([.1,.5,.9]),
-                campo.describe())  
+        
+        #display('Percentiles y estadistica descriptiva: ')
+        #display(campo[hidrocarburo].quantile([.1,.5,.9]), campo.describe())  
         
         #Analisis de dispersion
-        campo=campo.sort_values(by='profundidad_total',ascending=True)
+        campo=campo.sort_values(by='profundidad_total')
         fig, ax = plt.subplots(figsize=(10,5))
         ax.scatter(campo[hidrocarburo],campo.profundidad_total,color='Black')
         plt.title('Gasto de '+str(hidrocarburo)+' vs profundidad total para el campo '+str(input_campo))
@@ -298,82 +300,107 @@ def productividad(hidrocarburo):
     df['dias']=pd.DatetimeIndex(fechas).day
     df['periodo']=periodo
     
-    q10=gasto_aceite.Qi.quantile(.1)
-    q50=gasto_aceite.Qi.quantile(.5)
-    q90=gasto_aceite.Qi.quantile(.9)
+    q30=gasto_aceite.Qi.quantile(.30)
+    q50=gasto_aceite.Qi.quantile(.50)
+    q70=gasto_aceite.Qi.quantile(.70)
     
-    d10=gasto_aceite.di.quantile(.1)
-    d50=gasto_aceite.di.quantile(.5)
-    d90=gasto_aceite.di.quantile(.9)
+    d30=gasto_aceite.di.quantile(.30)
+    d50=gasto_aceite.di.quantile(.50)
+    d70=gasto_aceite.di.quantile(.70)
     
     d=gasto_aceite.di.mean()
-    b=gasto_aceite.b.mean()    
+    b=gasto_aceite.b.mean()  
 
-    criterio1=(gasto_aceite['Qi'] > q50)
+    criterio1=(gasto_aceite['Qi'] <= q30)
     tipo1=gasto_aceite.loc[criterio1]
     
-    q10_1=tipo1.Qi.quantile(.1)
-    q50_1=tipo1.Qi.quantile(.5)
-    q90_1=tipo1.Qi.quantile(.9)
+
+    q30_1=tipo1.Qi.quantile(.30)
+    q50_1=tipo1.Qi.quantile(.50)
+    q70_1=tipo1.Qi.quantile(.70)
     
-    d10_1=tipo1.di.quantile(.1)
-    d50_1=tipo1.di.quantile(.5)
-    d90_1=tipo1.di.quantile(.9)
+    d30_1=tipo1.di.quantile(.30)
+    d50_1=tipo1.di.quantile(.50)
+    d70_1=tipo1.di.quantile(.70)
     
     d1=tipo1.di.mean()
-    b1=tipo1.b.mean()    
+    b1=tipo1.b.mean()
     
-    criterio2=(gasto_aceite['Qi'] <= q50)
+    criterio2=(gasto_aceite['Qi'] > q30) & (gasto_aceite['Qi'] < q70)
     tipo2=gasto_aceite.loc[criterio2]
     
-        
-    q10_2=tipo2.Qi.quantile(.1)
-    q50_2=tipo2.Qi.quantile(.5)
-    q90_2=tipo2.Qi.quantile(.9)
     
-    d10_2=tipo2.di.quantile(.1)
-    d50_2=tipo2.di.quantile(.5)
-    d90_2=tipo2.di.quantile(.9)
+    q30_2=tipo2.Qi.quantile(.30)
+    q50_2=tipo2.Qi.quantile(.50)
+    q70_2=tipo2.Qi.quantile(.70)
+    
+    d30_2=tipo2.di.quantile(.30)
+    d50_2=tipo2.di.quantile(.50)
+    d70_2=tipo2.di.quantile(.70)
     
     d2=tipo2.di.mean()
     b2=tipo2.b.mean()    
     
+    criterio3=(gasto_aceite['Qi'] >= q70)
+    tipo3=gasto_aceite.loc[criterio3]
+    
+    q30_3=tipo3.Qi.quantile(.30)
+    q50_3=tipo3.Qi.quantile(.50)
+    q70_3=tipo3.Qi.quantile(.70)
+    
+    d30_3=tipo3.di.quantile(.30)
+    d50_3=tipo3.di.quantile(.50)
+    d70_3=tipo3.di.quantile(.70)
+    
+    d3=tipo3.di.mean()
+    b3=tipo3.b.mean()    
+    
     perfil=pd.DataFrame()
     perfil1=pd.DataFrame()
     perfil2=pd.DataFrame()
+    perfil3=pd.DataFrame()
     
     for x in df:
         
         perfil['mes']=df.periodo
-        perfil['P10']=(q10/((1.0+b*d*df.periodo)**(1.0/b)))
+        perfil['P30']=(q30/((1.0+b*d*df.periodo)**(1.0/b)))
         perfil['P50']=(q50/((1.0+b*d*df.periodo)**(1.0/b)))
-        perfil['P90']=(q90/((1.0+b*d*df.periodo)**(1.0/b)))
+        perfil['P70']=(q70/((1.0+b*d*df.periodo)**(1.0/b)))
         perfil['Np']=((q50**b)/((b-1)*d))*((perfil.P50**(1-b))-(q50**(1-b)))
 
     for x in df:
         
         perfil1['mes']=df.periodo
-        perfil1['P10']=(q10_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil1['P30']=(q30_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
         perfil1['P50']=(q50_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
-        perfil1['P90']=(q90_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil1['P70']=(q70_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
         
     for x in df:
         
         perfil2['mes']=df.periodo
-        perfil2['P10']=(q10_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil2['P30']=(q30_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
         perfil2['P50']=(q50_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
-        perfil2['P90']=(q90_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil2['P70']=(q70_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        
+    for x in df:
+        
+        perfil3['mes']=df.periodo
+        perfil3['P30']=(q30_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        perfil3['P50']=(q50_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        perfil3['P70']=(q70_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
         
     #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
-    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil.csv')
-    perfil1.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil1.csv')
-    perfil2.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil2.csv')
+    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfil.csv')
+    perfil1.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfil1.csv')
+    perfil2.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfil2.csv')
+    perfil3.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfil3.csv')
     
     
     fig5, ax5 = plt.subplots(figsize=(10,5))
     ax5.scatter(gasto_aceite.Qi,gasto_aceite.Pozo,color='Gray')
-    ax5.scatter(tipo1.Qi,tipo1.Pozo,color='Blue',label='Pozo Tipo 1')
-    ax5.scatter(tipo2.Qi,tipo2.Pozo,color='Red',label='Pozo Tipo 2')
+    ax5.scatter(tipo1.Qi,tipo1.Pozo,color='Red',label='Pozo Tipo 1 - BAJA')
+    ax5.scatter(tipo2.Qi,tipo2.Pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
+    ax5.scatter(tipo3.Qi,tipo3.Pozo,color='Green',label='Pozo Tipo 3 - ALTA')
     ax5.set_xlabel('Gasto inicial Qi')
     ax5.set_ylabel('Pozo')
     plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
@@ -381,13 +408,17 @@ def productividad(hidrocarburo):
     plt.show()
     
     
-    display('P50 del campo:  '+str(gasto_aceite.Qi.quantile(.5)),
-            'P50 del Pozo Tipo 1:  '+str(tipo1.Qi.quantile(.5)),
-            'P50 del Pozo Tipo 2:  '+str(tipo2.Qi.quantile(.5)))
+    display('Qi50 del campo:  '+str(gasto_aceite.Qi.quantile(.5)),
+            'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi.quantile(.5)),
+            'Qi50 del Pozo Tipo 2:  '+str(tipo2.Qi.quantile(.5)),
+            'Qi50 del Pozo Tipo 3:  '+str(tipo3.Qi.quantile(.5)))
 
     display('d50 del campo:  '+str(gasto_aceite.di.quantile(.5)),
             'd50 del Pozo Tipo 1:  '+str(tipo1.di.quantile(.5)),
-            'd50 del Pozo Tipo 2:  '+str(tipo2.di.quantile(.5)))
+            'd50 del Pozo Tipo 2:  '+str(tipo2.di.quantile(.5)),
+            'd50 del Pozo Tipo 3:  '+str(tipo3.di.quantile(.5)))
+    
+    display(len(tipo1),len(tipo2),len(tipo3))
     
     fig, ax = plt.subplots(figsize=(10,5))
     plt.hist(gasto_aceite.Qi, alpha=0.5, label='Qi',bins=10)
@@ -416,14 +447,17 @@ def productividad(hidrocarburo):
 
     fig4, ax4 = plt.subplots(figsize=(10,5))    
     #ax4.plot(perfil.P10,label='Qo-P10')
-    ax4.plot(perfil.P50,label='Qo-P50')
+    ax4.plot(perfil.P50,label='Qo-P50',linestyle='solid')
     #ax4.plot(perfil.P90,label='Qo-P90')
     #ax4.plot(perfil1.P10,label='Qo1-P10')
-    ax4.plot(perfil1.P50,label='Qo1-P50')
+    ax4.plot(perfil1.P50,label='Qo1-BAJA',linestyle='dashdot')
     #ax4.plot(perfil1.P90,label='Qo1-P90')
     #ax4.plot(perfil2.P10,label='Qo2-P10')
-    ax4.plot(perfil2.P50,label='Qo2-P50')
+    ax4.plot(perfil2.P50,label='Qo2-MEDIA',linestyle='dashed')
     #ax4.plot(perfil2.P90,label='Qo2-P90')
+    #ax4.plot(perfil3.P10,label='Qo2-P10')
+    ax4.plot(perfil3.P50,label='Qo3-ALTA',linestyle='dotted')
+    #ax4.plot(perfil3.P90,label='Qo2-P90')
     plt.xlim(0,500)
     plt.ylim(0);
     ax4.set_xlabel('Mes')
