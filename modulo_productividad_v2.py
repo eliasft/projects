@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy
-import scipy.stats
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta,date
@@ -27,7 +26,6 @@ warnings.filterwarnings("ignore")
 def productividad(hidrocarburo,baja,media,alta):
     
     global unique_well_list
-    global data_pozos
     global resultados
     global gasto
     global perfil
@@ -36,9 +34,8 @@ def productividad(hidrocarburo,baja,media,alta):
     global tipo1
     global tipo2
     global tipo3
-    global resumen
     global base
-
+    global tipo
     
     tic=timeit.default_timer()
     
@@ -50,11 +47,9 @@ def productividad(hidrocarburo,baja,media,alta):
         
         global campo
         global input_campo
-        global intervalos
     
         #Input de campo
         input_campo = input("Nombre de campo: ")
-        intervalos = 3
 
         seleccion=mx_bd.pozo.str.contains(str(input_campo))
         campo=mx_bd.loc[seleccion]
@@ -69,16 +64,16 @@ def productividad(hidrocarburo,baja,media,alta):
         #display(campo[hidrocarburo].quantile([.1,.5,.9]), campo.describe())  
         
         #Analisis de dispersion
-        campo=campo.sort_values(by='profundidad_total')
+        campo=campo.sort_values(by='profundidad_vertical')
         fig, ax = plt.subplots(figsize=(10,5))
-        ax.scatter(campo[hidrocarburo],campo.profundidad_total,color='Black')
-        plt.title('Gasto de '+str(hidrocarburo)+' vs profundidad total para el campo '+str(input_campo))
+        ax.scatter(campo[hidrocarburo],campo.profundidad_vertical,color='Black')
+        plt.title('Gasto de '+str(hidrocarburo)+' vs profundidad vertical para el campo '+str(input_campo))
         ax.set_xlabel(hidrocarburo)
-        ax.set_ylabel('Profundidad total')
+        ax.set_ylabel('Profundidad vertical')
         plt.show()
 
         #Generacion de archivo de resultados
-        #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #campo.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
         return campo
     
@@ -212,10 +207,11 @@ def productividad(hidrocarburo,baja,media,alta):
         plt.show()
     
     resultados=pd.DataFrame()
-    resumen=pd.DataFrame()
+    fit=pd.DataFrame()
     gasto=pd.DataFrame()
     Qi=pd.DataFrame()
-    
+    base=pd.DataFrame()
+    perfil_base=pd.DataFrame()
     
     #Entrada de campo de análisis
     campo_analisis()
@@ -277,15 +273,18 @@ def productividad(hidrocarburo,baja,media,alta):
         #Error
         perr = np.sqrt(np.diag(pcov_hyp))
 
-        resumen['Qi_hiperbolica']=popt_hyp[0]
-        resumen['di_hiperbolica']=popt_hyp[2]
-        resumen['Error Qo_hiperbolica']=perr[0]
-        resumen['Error di_hiperbolica']=perr[1]
-    
+        seleccion_base=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
         
+        fit=[[pozo,
+              popt_hyp[0],
+              popt_hyp[1],
+              popt_hyp[2],
+              perr[0],
+              perr[1],
+              float(seleccion_base[hidrocarburo]),
+              int(seleccion_base.mes)]]
+
         Qi=[[pozo,qi,popt_hyp[1],popt_hyp[2]]]
-        
-        base=serie_produccion.fecha.max()
 
         #Declare the x- and y- variables that we want to plot against each other
         y_variables=[hydrocarbon,'harmonica','hiperbolica']
@@ -297,16 +296,28 @@ def productividad(hidrocarburo,baja,media,alta):
         #Plot the data to visualize the equation fit
         #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
 
+        base=base.append(fit,sort=False)
         resultados=resultados.append(serie_produccion,sort=False)
         gasto=gasto.append(Qi,sort=True)
-        base=base.append(base,sort=False)
+        
+    base=base.rename(columns={0:'pozo',
+                          1:'Qi',
+                          2:'b',
+                          3:'di',
+                          4: hidrocarburo,
+                          5:'mes',
+                          6:'error_Qo_hiperbolica',
+                          7:'error_di_hiperbolica'})
+    
+    gasto=gasto.rename(columns={0:'Pozo',
+                                1:'Qi',
+                                2:'b',
+                                3:'di'})
     
     estadistica=resultados.describe()
 
-    #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-
-    gasto=gasto.rename(columns={0:'Pozo',1:'Qi',2:'b',3:'di'})
-    gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
+    #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+    gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
     
     #####################  PRONOSTICO Qo y RESULTADOS DCA   #####################
     
@@ -376,32 +387,50 @@ def productividad(hidrocarburo,baja,media,alta):
     d3=tipo3.di.mean()
     b3=tipo3.b.mean()    
     
+    t1 = pd.DataFrame([['Qi', 1], ['b', 2],['di',]],
+                   columns=['tipo1'])
+#df1
+ # letter  number
+#0      a       1
+#1      b       2
+    
+ #   t1 = pd.DataFrame([['a', 1], ['b', 2]],
+  #                 columns=['letter', 'number'])
+    
+    #t1=pd.Series([tipo1.Qi.mean(),tipo1.b.mean(),tipo1.di.mean()])
+    #t2=pd.Series([tipo2.Qi.mean(),tipo2.b.mean(),tipo2.di.mean()])
+    #t3=pd.Series([tipo3.Qi.mean(),tipo3.b.mean(),tipo3.di.mean()])
+    
+    
+    #tipo=pd.concat([t1,t2,t3])
+    
     perfil=pd.DataFrame()
     
     for x in df:
         
         perfil['mes']=df.periodo
-        perfil['P50_BAJA']=(q_baja/((1.0+b*d*df.periodo)**(1.0/b)))
-        perfil['P50_MEDIA']=(q_media/((1.0+b*d*df.periodo)**(1.0/b)))
-        perfil['P50_ALTA']=(q_alta/((1.0+b*d*df.periodo)**(1.0/b)))
-        perfil['Np']=((q_media**b)/((b-1)*d))*((perfil.P50_MEDIA**(1-b))-(q_media**(1-b)))
+        #perfil['P50_BAJA']=(q_baja/((1.0+b*d*df.periodo)**(1.0/b)))
+        #perfil['P50']=(q_media/((1.0+b*d*df.periodo)**(1.0/b)))
+        #perfil['P50_ALTA']=(q_alta/((1.0+b*d*df.periodo)**(1.0/b)))
+        #perfil['Np']=((q_media**b)/((b-1)*d))*((perfil.P50_MEDIA**(1-b))-(q_media**(1-b)))
 
-        perfil['P1_BAJA']=(q_baja_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
-        perfil['P1_MEDIA']=(q_media_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
-        perfil['P1_ALTA']=(q_alta_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        #perfil['P1_BAJA']=(q_baja_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil['P1']=(q_media_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        #perfil['P1_ALTA']=(q_alta_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
 
-        perfil['P2_BAJA']=(q_baja_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
-        perfil['P2_MEDIA']=(q_media_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
-        perfil['P2_ALTA']=(q_alta_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        #perfil['P2_BAJA']=(q_baja_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil['P2']=(q_media_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        #perfil['P2_ALTA']=(q_alta_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
         
-        perfil['P3_BAJA']=(q_baja_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
-        perfil['P3_MEDIA']=(q_media_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
-        perfil['P3_ALTA']=(q_alta_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        #perfil['P3_BAJA']=(q_baja_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        perfil['P3']=(q_media_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        #perfil['P3_ALTA']=(q_alta_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
         
         #perfil['agregado']=(.20)*perfil.P1_MEDIA+(.50)*perfil.P2_MEDIA+(.20)*perfil.P3_MEDIA
         
-    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
-    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil.csv')
+    #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    perfil=perfil.set_index('mes')
+    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfil.csv')
     
     fig5, ax5 = plt.subplots(figsize=(10,5))
     ax5.scatter(gasto.Qi,gasto.Pozo,color='Gray')
@@ -473,16 +502,16 @@ def productividad(hidrocarburo,baja,media,alta):
 
     fig4, ax4 = plt.subplots(figsize=(10,5))    
     #ax4.plot(perfil.P_BAJA,label='Qo-P_BAJA')
-    ax4.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='solid')
+    #ax4.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='solid')
     #ax4.plot(perfil.P_ALTA,label='Qo-P_ALTA')
     #ax4.plot(perfil.P1_BAJA,label='Qo1-BAJA_L')
-    ax4.plot(perfil.P1_MEDIA,label='Qo1-BAJA',linestyle='dashdot')
+    ax4.plot(perfil.P1,label='Qo1-BAJA',linestyle='dashdot')
     #ax4.plot(perfil.P1_ALTA,label='Qo1-BAJA_H')
     #ax4.plot(perfil.P2_BAJA,label='Qo2-MEDIA_L')
-    ax4.plot(perfil.P2_MEDIA,label='Qo2-MEDIA',linestyle='dashed')
+    ax4.plot(perfil.P2,label='Qo2-MEDIA',linestyle='dashed')
     #ax4.plot(perfil.P2_ALTA,label='Qo2-MEDIA_H')
     #ax4.plot(perfil.P3_BAJA,label='Qo3-ALTA_L')
-    ax4.plot(perfil.P3_MEDIA,label='Qo3-ALTA',linestyle='dotted')
+    ax4.plot(perfil.P3,label='Qo3-ALTA',linestyle='dotted')
     #ax4.plot(perfil.P3_ALTA,label='Qo3-ALTA_H')
     #plt.yscale('logit')
     plt.xlim(0,500)
