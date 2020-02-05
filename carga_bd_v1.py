@@ -25,7 +25,7 @@ def carga_bd():
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_bd.csv',
+    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_bd.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
