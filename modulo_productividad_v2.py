@@ -26,21 +26,18 @@ warnings.filterwarnings("ignore")
 def productividad(hidrocarburo,baja,media,alta):
     
     global unique_well_list
-    global resultados
-    global gasto
     global perfil
     global df
     global estadistica
     global tipo1
     global tipo2
     global tipo3
-    global base
-    global tipo
+    global ajuste
     
     tic=timeit.default_timer()
     
     
-#############      ESTADISTICA DE POZOS   ####### 
+##################    INPUT CAMPO   ######################3
     
     #input de campo de analisis
     def campo_analisis():
@@ -57,28 +54,14 @@ def productividad(hidrocarburo,baja,media,alta):
         unique_well_list=pd.unique(campo['pozo'])
 
         display('Número de pozos en ' +str(input_campo)+': '+str(len(unique_well_list)))
-           
-        #Estadistica descriptiva
-        
-        #display('Percentiles y estadistica descriptiva: ')
-        #display(campo[hidrocarburo].quantile([.1,.5,.9]), campo.describe())  
-        
-        #Analisis de dispersion
-        #campo=campo.sort_values(by='profundidad_vertical')
-        #fig, ax = plt.subplots(figsize=(10,5))
-        #ax.scatter(campo[hidrocarburo],campo.profundidad_vertical,color='Black')
-        #plt.title('Gasto de '+str(hidrocarburo)+' vs profundidad vertical para el campo '+str(input_campo))
-        #ax.set_xlabel(hidrocarburo)
-        #ax.set_ylabel('Profundidad vertical')
-        #plt.show()
 
         #Generacion de archivo de resultados
-        #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #campo.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
         return campo
     
 
-########      ANALISIS DE DECLINACION DE POZOS      ####### 
+########      FUNCIONES PARA EL ANALISIS DE DECLINACION DE POZOS      ####### 
     
     def remove_nan_and_zeroes_from_columns(df, variable):
         """
@@ -206,146 +189,157 @@ def productividad(hidrocarburo,baja,media,alta):
         df.plot(x=x_variable, y=y_variables, title=plot_title,figsize=(10,5),scalex=True, scaley=True)
         plt.show()
     
-    resultados=pd.DataFrame()
-    fit=pd.DataFrame()
-    gasto=pd.DataFrame()
-    Qi=pd.DataFrame()
-    base=pd.DataFrame()
-    perfil_base=pd.DataFrame()
     
-    #Entrada de campo de análisis
-    campo_analisis()
-    data_pozos=campo
-    
-    #Limpieza de datos y formato de fecha
-    data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'])
-    
-    #hidrocarburo de análisis
-    hydrocarbon=str(hidrocarburo)
-    
-    #Remove all rows with null values in the desired time series column
-    data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hydrocarbon)
-    
-    #Get a list of unique wells to loop through
-    unique_well_list=pd.unique(list(data_pozos.pozo))
-    
-    #Get the earliest RecordDate for each Well
-    data_pozos['first_oil']= get_min_or_max_value_in_column_by_group(data_pozos, group_by_column='pozo', 
-                                                                    calc_column='fecha', calc_type='min')
-    #Generate column for time online delta
-    data_pozos['days_online']=generate_time_delta_column(data_pozos, time_column='fecha', 
-                  date_first_online_column='first_oil')
-    #Pull data that came online between an specified range
-    data_pozos_range=data_pozos[(data_pozos.fecha>='1900-01-01') & (data_pozos.fecha<='2019-12-01')]
-    
-    #Loop para realizar el DCA en cada pozo del campo
-    for pozo in unique_well_list:
-        
-        #Subset el data frame del campo por pozo
-        serie_produccion=data_pozos_range[data_pozos_range.pozo==pozo]
-        
-        #Calculo de declinacion porcentual
-        serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
-        
-        #Cálculo de la máxima producción inicial
-        qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
-        
-        #Columna de mes de producción
-        serie_produccion.loc[:,'mes']=(serie_produccion[hidrocarburo] > 0).cumsum()
+#############     ANÁLISIS DE DECLINACION DE POZOS (DCA)   #############
 
-        #Ajuste Hiperbolico
-        popt_hyp, pcov_hyp=curve_fit(hyperbolic_equation, serie_produccion['mes'], 
-                                     serie_produccion[hydrocarbon],bounds=(0, [qi,1,50]))
-        #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
-       
-        #Ajuste Harmonico
-        popt_harm, pcov_harm=curve_fit(harmonic_equation, serie_produccion['mes'], 
-                                     serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
-        #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
-
-        #Resultados de funcion Hiperbolica
-        serie_produccion.loc[:,'hiperbolica']=hyperbolic_equation(serie_produccion['mes'], 
-                                  *popt_hyp)
-        #Resultados de funcion Harmonica
-        serie_produccion.loc[:,'harmonica']=harmonic_equation(serie_produccion['mes'], 
-                                  *popt_harm)
+    def analisis_dca():
         
-        #Error
-        perr_hyp = np.sqrt(np.diag(pcov_hyp))
-        perr_harm = np.sqrt(np.diag(pcov_harm))
-
-        seleccion_base=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
+        global base, resultados, gasto
         
-        fit=[[pozo,
-              popt_hyp[0],
-              popt_hyp[1],
-              popt_hyp[2],
-              perr_hyp[0],
-              perr_hyp[1],
-              popt_harm[0],
-              popt_harm[1],
-              perr_harm[0],
-              perr_harm[1],
-              float(seleccion_base[hidrocarburo]),
-              int(seleccion_base.mes)]]
+        resultados=pd.DataFrame()
+        fit=pd.DataFrame()
+        gasto=pd.DataFrame()
+        Qi=pd.DataFrame()
+        base=pd.DataFrame()
 
-        Qi=[[pozo,
-             qi,
-             popt_hyp[1],
-             popt_hyp[2],
-             perr_hyp[0],
-             perr_hyp[1],
-             popt_harm[0],
-             popt_harm[1],
-             perr_harm[0],
-             perr_harm[1]]]
-
-        #Declare the x- and y- variables that we want to plot against each other
-        y_variables=[hydrocarbon,'harmonica','hiperbolica']
-        x_variable='mes'
         
-        #Create the plot title
-        plot_title=hydrocarbon+' for '+str(pozo)
+        #Entrada de campo de análisis
+        campo_analisis()
+        data_pozos=campo
         
-        #Plot the data to visualize the equation fit
-        #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
-
-        base=base.append(fit,sort=False)
-        resultados=resultados.append(serie_produccion,sort=False)
-        gasto=gasto.append(Qi,sort=True)
+        #Limpieza de datos y formato de fecha
+        data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'])
         
-    base=base.rename(columns={0:'pozo',
-                              1:'Qi_hyp',
-                              2:'b_hyp',
-                              3:'di_hyp',
-                              4:'error_Qi_hyp',
-                              5:'error_di_hyp',
-                              6:'Qi_harm',
-                              7:'di_harm',
-                              8:'error_Qi_harm',
-                              9:'error_di_harm',
-                              9:hidrocarburo,
-                             10:'mes'})
+        #hidrocarburo de análisis
+        hydrocarbon=str(hidrocarburo)
+        
+        #Remove all rows with null values in the desired time series column
+        data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hydrocarbon)
+        
+        #Get a list of unique wells to loop through
+        unique_well_list=pd.unique(list(data_pozos.pozo))
+        
+        #Get the earliest RecordDate for each Well
+        data_pozos['first_oil']= get_min_or_max_value_in_column_by_group(data_pozos, group_by_column='pozo', 
+                                                                        calc_column='fecha', calc_type='min')
+        #Generate column for time online delta
+        data_pozos['days_online']=generate_time_delta_column(data_pozos, time_column='fecha', 
+                      date_first_online_column='first_oil')
+        #Pull data that came online between an specified range
+        data_pozos_range=data_pozos[(data_pozos.fecha>='1900-01-01') & (data_pozos.fecha<='2019-12-01')]
+        
+        #Loop para realizar el DCA en cada pozo del campo
+        for pozo in unique_well_list:
+            
+            #Subset el data frame del campo por pozo
+            serie_produccion=data_pozos_range[data_pozos_range.pozo==pozo]
+            
+            #Calculo de declinacion porcentual
+            serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
+            
+            #Cálculo de la máxima producción inicial
+            qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
+            
+            #Columna de mes de producción
+            serie_produccion.loc[:,'mes']=(serie_produccion[hidrocarburo] > 0).cumsum()
+    
+            #Ajuste Hiperbolico
+            popt_hyp, pcov_hyp=curve_fit(hyperbolic_equation, serie_produccion['mes'], 
+                                         serie_produccion[hydrocarbon],bounds=(0, [qi,1,50]))
+            #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
+           
+            #Ajuste Harmonico
+            popt_harm, pcov_harm=curve_fit(harmonic_equation, serie_produccion['mes'], 
+                                         serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
+            #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
+    
+            #Resultados de funcion Hiperbolica
+            serie_produccion.loc[:,'hiperbolica']=hyperbolic_equation(serie_produccion['mes'], 
+                                      *popt_hyp)
+            #Resultados de funcion Harmonica
+            serie_produccion.loc[:,'harmonica']=harmonic_equation(serie_produccion['mes'], 
+                                      *popt_harm)
+            
+            #Error
+            perr_hyp = np.sqrt(np.diag(pcov_hyp))
+            perr_harm = np.sqrt(np.diag(pcov_harm))
+    
+            seleccion_base=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
+            
+            fit=[[pozo,
+                  popt_hyp[0],
+                  popt_hyp[1],
+                  popt_hyp[2],
+                  perr_hyp[0],
+                  perr_hyp[1],
+                  popt_harm[0],
+                  popt_harm[1],
+                  perr_harm[0],
+                  perr_harm[1],
+                  float(seleccion_base[hidrocarburo]),
+                  int(seleccion_base.mes)]]
+    
+            Qi=[[pozo,
+                 qi,
+                 popt_hyp[0],
+                 popt_hyp[1],
+                 popt_hyp[2],
+                 perr_hyp[0],
+                 perr_hyp[1],
+                 popt_harm[0],
+                 popt_harm[1],
+                 perr_harm[0],
+                 perr_harm[1]]]
+    
+            #Declare the x- and y- variables that we want to plot against each other
+            y_variables=[hydrocarbon,'harmonica','hiperbolica']
+            x_variable='mes'
+            
+            #Create the plot title
+            plot_title=hydrocarbon+' for '+str(pozo)
+            
+            #Plot the data to visualize the equation fit
+            #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
+    
+            base=base.append(fit,sort=False)
+            resultados=resultados.append(serie_produccion,sort=False)
+            gasto=gasto.append(Qi,sort=True)
+            
+        base=base.rename(columns={0:'pozo',
+                                  1:'Qi_hyp',
+                                  2:'b',
+                                  3:'di_hyp',
+                                  4:'error_Qi_hyp',
+                                  5:'error_di_hyp',
+                                  6:'Qi_harm',
+                                  7:'di_harm',
+                                  8:'error_Qi_harm',
+                                  9:'error_di_harm',
+                                  9:hidrocarburo,
+                                 10:'mes'})
+        
+        gasto=gasto.rename(columns={0:'pozo',
+                                    1:'Qi',
+                                    2:'Qi_hyp',
+                                    3:'b',
+                                    4:'di_hyp',
+                                    5:'error_Qi_hyp',
+                                    6:'error_di_hyp',
+                                    7:'Qi_harm',
+                                    8:'di_harm',
+                                    9:'error_Qi_harm',
+                                    10:'error_di_harm'})
+        
+        estadistica=resultados.describe()
+        
+        #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+        #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
                 
-                          
+        return base, resultados, gasto
+        
+    analisis_dca()
     
-    gasto=gasto.rename(columns={0:'pozo',
-                                1:'Qi',
-                                2:'b_hyp',
-                                3:'di_hyp',
-                                4:'error_Qi_hyp',
-                                5:'error_di_hyp',
-                                6:'Qi_harm',
-                                7:'di_harm',
-                                8:'error_Qi_harm',
-                                9:'error_di_harm'})
-    
-    estadistica=resultados.describe()
-
-    #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-    gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
-    
-    #####################  PRONOSTICO Qo y RESULTADOS DCA   #####################
+#########################  POZOS TIPO - PRONOSTICO DE PRODUCCION Qo   ##################### 
     
     periodo=np.arange(start=1,stop=501,step=1)
     fechas=pd.date_range(start='01-Jan-2020',freq='M',periods=500,normalize=True,closed='left')
@@ -362,69 +356,64 @@ def productividad(hidrocarburo,baja,media,alta):
     q_media=gasto.Qi.quantile(media)
     q_alta=gasto.Qi.quantile(alta)
     
-    d_baja=gasto.di.quantile(baja)
-    d_media=gasto.di.quantile(media)
-    d_alta=gasto.di.quantile(alta)
+    #d_baja=gasto.di.quantile(baja)
+    d_media=gasto.di_hyp.quantile(media)
+    #d_media=gasto.di_harm.quantile(media)
+    #d_alta=gasto.di.quantile(alta)
     
-    d=gasto.di.mean()
+    d=gasto.di_hyp.mean()
+    #d=gasto.di_harm.mean()
     b=gasto.b.mean()  
 
     criterio1=(gasto['Qi'] <= q_baja)
     tipo1=gasto.loc[criterio1]
     
 
-    q_baja_1=tipo1.Qi.quantile(baja)
+    #q_baja_1=tipo1.Qi.quantile(baja)
     q_media_1=tipo1.Qi.quantile(media)
-    q_alta_1=tipo1.Qi.quantile(alta)
+    #q_alta_1=tipo1.Qi.quantile(alta)
     
-    d_baja_1=tipo1.di.quantile(baja)
-    d_media_1=tipo1.di.quantile(media)
-    d_alta_1=tipo1.di.quantile(alta)
+    #d_baja_1=tipo1.di.quantile(baja)
+    d_media_1=tipo1.di_hyp.quantile(media)
+    #d_media_1=tipo1.di_harm.quantile(media)
+    #d_alta_1=tipo1.di.quantile(alta)
     
-    d1=tipo1.di.mean()
+    d1=tipo1.di_hyp.mean()
+    #d1=tipo1.di_harm.mean()
     b1=tipo1.b.mean()
     
     criterio2=(gasto['Qi'] > q_baja) & (gasto['Qi'] < q_alta)
     tipo2=gasto.loc[criterio2]
     
     
-    q_baja_2=tipo2.Qi.quantile(baja)
+    #q_baja_2=tipo2.Qi.quantile(baja)
     q_media_2=tipo2.Qi.quantile(media)
-    q_alta_2=tipo2.Qi.quantile(alta)
+    #q_alta_2=tipo2.Qi.quantile(alta)
     
-    d_baja_2=tipo2.di.quantile(baja)
-    d_media_2=tipo2.di.quantile(media)
-    d_alta_2=tipo2.di.quantile(alta)
+    #d_baja_2=tipo2.di.quantile(baja)
+    d_media_2=tipo2.di_hyp.quantile(media)
+    #d_media_2=tipo2.di_harm.quantile(media)
+    #d_alta_2=tipo2.di.quantile(alta)
     
-    d2=tipo2.di.mean()
+    d2=tipo2.di_hyp.mean()
+    #d2=tipo2.di_harm.mean()
     b2=tipo2.b.mean()    
     
     criterio3=(gasto['Qi'] >= q_alta)
     tipo3=gasto.loc[criterio3]
     
-    q_baja_3=tipo3.Qi.quantile(baja)
+    #q_baja_3=tipo3.Qi.quantile(baja)
     q_media_3=tipo3.Qi.quantile(media)
-    q_alta_3=tipo3.Qi.quantile(alta)
+    #q_alta_3=tipo3.Qi.quantile(alta)
     
-    d_baja_3=tipo3.di.quantile(baja)
-    d_media_3=tipo3.di.quantile(media)
-    d_alta_3=tipo3.di.quantile(alta)
+    #d_baja_3=tipo3.di.quantile(baja)
+    d_media_3=tipo3.di_hyp.quantile(media)
+    #d_media_3=tipo3.di_harm.quantile(media)
+    #d_alta_3=tipo3.di.quantile(alta)
     
-    d3=tipo3.di.mean()
+    d3=tipo3.di_hyp.mean()
+    #d3=tipo3.di_harm.mean()
     b3=tipo3.b.mean()    
-    
-    d = {'Qi': [tipo1.Qi.mean(), tipo2.Qi.mean(),tipo3.Qi.mean()],
-         'di': [tipo1.di.mean(), tipo2.di.mean(),tipo3.di.mean()],
-         'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
-         'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
-         'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()]}
-        'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
-         'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()]}
-    
-    ajuste = pd.DataFrame(data=d,index=['Tipo1','Tipo2','Tipo3'])
-    
-    display(ajuste)
-    
     
     perfil=pd.DataFrame()
     
@@ -450,94 +439,132 @@ def productividad(hidrocarburo,baja,media,alta):
         
         #perfil['agregado']=(.20)*perfil.P1_MEDIA+(.50)*perfil.P2_MEDIA+(.20)*perfil.P3_MEDIA
         
-    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    d = {'Qi': [tipo1.Qi.mean(), tipo2.Qi.mean(),tipo3.Qi.mean()],
+     'Qi_hyp': [tipo1.Qi_hyp.mean(), tipo2.Qi_hyp.mean(),tipo3.Qi_hyp.mean()],
+     'Qi_harm': [tipo1.Qi_harm.mean(), tipo2.Qi_harm.mean(),tipo3.Qi_harm.mean()],
+     'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
+     'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
+     'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
+     'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
+     'error_Qi_harm':[tipo1.error_Qi_harm.mean(), tipo2.error_Qi_harm.mean(),tipo3.error_Qi_harm.mean()],
+     'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()],
+     'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()]}
+    
+    ajuste = pd.DataFrame(data=d,index=['Tipo1','Tipo2','Tipo3'])
+    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/ajuste.csv')
+        
+    #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
     perfil=perfil.set_index('mes')
-    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfil.csv')
-    
-    fig5, ax5 = plt.subplots(figsize=(10,5))
-    ax5.scatter(gasto.Qi,gasto.Pozo,color='Gray')
-    ax5.scatter(tipo1.Qi,tipo1.Pozo,color='Red',label='Pozo Tipo 1 - BAJA')
-    ax5.scatter(tipo2.Qi,tipo2.Pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
-    ax5.scatter(tipo3.Qi,tipo3.Pozo,color='Green',label='Pozo Tipo 3 - ALTA')
-    ax5.set_xlabel('Gasto inicial Qi')
-    ax5.set_ylabel('Pozo')
-    plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
-    plt.legend(loc='upper right')
-    plt.show()
-    
+    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfiles_tipo.csv')
     
     display('Qi50 del campo:  '+str(gasto.Qi.quantile(.5)),
             'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi.quantile(.5)),
             'Qi50 del Pozo Tipo 2:  '+str(tipo2.Qi.quantile(.5)),
             'Qi50 del Pozo Tipo 3:  '+str(tipo3.Qi.quantile(.5)))
 
-    display('d_media del campo:  '+str(gasto.di.quantile(.5)),
-            'd_media del Pozo Tipo 1:  '+str(tipo1.di.quantile(.5)),
-            'd_media del Pozo Tipo 2:  '+str(tipo2.di.quantile(.5)),
-            'd_media del Pozo Tipo 3:  '+str(tipo3.di.quantile(.5)))
+    display('d_media del campo:  '+str(gasto.di_harm.quantile(.5)),
+            'd_media hyp del Pozo Tipo 1:  '+str(tipo1.di_hyp.quantile(.5)),
+            'd_media hyp del Pozo Tipo 2:  '+str(tipo2.di_hyp.quantile(.5)),
+            'd_media hyp del Pozo Tipo 3:  '+str(tipo3.di_hyp.quantile(.5)),
+            'd_media harm del Pozo Tipo 1:  '+str(tipo1.di_harm.quantile(.5)),
+            'd_media harm del Pozo Tipo 2:  '+str(tipo2.di_harm.quantile(.5)),
+            'd_media harm del Pozo Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
       
-    distribucion=pd.DataFrame([len(tipo1),
-            len(tipo2),
-            len(tipo3)])
+    distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),
+                                                     len(tipo2),
+                                                     len(tipo3)]},
+                              index=['tipo1','tipo2','tipo3'])
     
-    display(distribucion)
     
-    labels = 'Baja', 'Media', 'Alta'
-    explode = (0.1, 0.1, 0.1)  
-    # only "explode" the 2nd slice (i.e. 'Hogs')
+
+
+#########################  GRAFICAS DE RESULTADOS   ##################### 
+
+    #Estadistica descriptiva
+        
+    #display('Percentiles y estadistica descriptiva: ')
+    #display(campo[hidrocarburo].quantile([.1,.5,.9]), campo.describe())  
     
-    fig, ax = plt.subplots(figsize=(10,5))
-    ax.pie(distribucion, explode=explode, labels=labels, autopct='%1.1f%%',
-            shadow=True, startangle=90)
-    # Equal aspect ratio ensures that pie is drawn as a circle.
-    ax.axis('equal')  
-    plt.show()
+    #Analisis de dispersion
+    #campo=campo.sort_values(by='profundidad_vertical')
+    #fig, ax = plt.subplots(figsize=(10,5))
+    #ax.scatter(campo[hidrocarburo],campo.profundidad_vertical,color='Black')
+    #plt.title('Gasto de '+str(hidrocarburo)+' vs profundidad vertical para el campo '+str(input_campo))
+    #ax.set_xlabel(hidrocarburo)
+    #ax.set_ylabel('Profundidad vertical')
+    #plt.show()
     
-    fig, ax = plt.subplots(figsize=(10,5))
+    #Distribucion del gasto inicial Qi
+    fig0, ax0 = plt.subplots(figsize=(10,5))
     plt.hist(gasto.Qi, alpha=0.5, label='Qi',bins=10)
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
+    #Distribucion de la declinacion inicial di
     fig1, ax1 = plt.subplots(figsize=(10,5))
-    plt.hist(gasto.di, alpha=0.5, label='di',bins=10,color='Green')
+    plt.hist(gasto.di_hyp, alpha=0.5, label='di',bins=10,color='Green')
     plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
+    #Distribucion del gasto historico vs pronosticado
     fig2, ax2 = plt.subplots(figsize=(10,5))
     plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',bins=50)
     plt.hist(resultados.hiperbolica, alpha=0.5, label='Hyperbolic Predicted',bins=50)
     plt.hist(resultados.harmonica, alpha=0.5, label='Harmonic Predicted',bins=50)
-    plt.title('Histograma del gasto historico vs pronosticado ' +str(input_campo))
+    plt.title('Distribucion del gasto historico vs pronosticado ' +str(input_campo))
     plt.legend(loc='upper right')
     
-    #resultados=resultados.groupby(by='pozo')
+    #Pie chart de distribucion de Pozos Tipo 
+    labels = 'Baja', 'Media', 'Alta'
+    explode = (0.1, 0.1, 0.1) 
     fig3, ax3 = plt.subplots(figsize=(10,5))
-    ax3.scatter(resultados.mes,resultados[hidrocarburo],color='Gray',alpha=0.5)
-    plt.title('Tiempo vs Gasto de ' +str(hydrocarbon))
-    ax3.set_xlabel('Mes')
-    ax3.set_ylabel('Qo')
+    ax3.pie(distribucion, explode=explode, labels=labels, autopct='%1.1f%%',shadow=True, startangle=90)
+    ax3.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.show()
+    
+    #Dispersion del gasto inicial Qi
+    fig4, ax4 = plt.subplots(figsize=(10,5))
+    ax4.scatter(gasto.Qi,gasto.pozo,color='Gray')
+    ax4.scatter(tipo1.Qi,tipo1.pozo,color='Red',label='Pozo Tipo 1 - BAJA')
+    ax4.scatter(tipo2.Qi,tipo2.pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
+    ax4.scatter(tipo3.Qi,tipo3.pozo,color='Green',label='Pozo Tipo 3 - ALTA')
+    ax4.set_xlabel('Gasto inicial Qi')
+    ax4.set_ylabel('Pozo')
+    plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
+    plt.legend(loc='upper right')
+    plt.show()
+    
+    #Tiempo de produccion vs Gasto de hidrocarburo
+    #resultados=resultados.groupby(by='pozo')
+    fig5, ax5 = plt.subplots(figsize=(10,5))
+    ax5.scatter(resultados.mes,resultados[hidrocarburo],color='Gray',alpha=0.5)
+    plt.title('Tiempo vs Gasto de ' +str(hidrocarburo))
+    ax5.set_xlabel('Mes')
+    ax5.set_ylabel('Qo')
     plt.show()
 
-    fig4, ax4 = plt.subplots(figsize=(10,5))    
-    #ax4.plot(perfil.P_BAJA,label='Qo-P_BAJA')
-    #ax4.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='dashdot')
-    #ax4.plot(perfil.P_ALTA,label='Qo-P_ALTA')
-    #ax4.plot(perfil.P1_BAJA,label='Qo1-BAJA_L')
-    ax4.plot(perfil.P1,label='Qo1-BAJA',linestyle='dashed')
-    #ax4.plot(perfil.P1_ALTA,label='Qo1-BAJA_H')
-    #ax4.plot(perfil.P2_BAJA,label='Qo2-MEDIA_L')
-    ax4.plot(perfil.P2,label='Qo2-MEDIA',linestyle='solid')
-    #ax4.plot(perfil.P2_ALTA,label='Qo2-MEDIA_H')
-    #ax4.plot(perfil.P3_BAJA,label='Qo3-ALTA_L')
-    ax4.plot(perfil.P3,label='Qo3-ALTA',linestyle='dotted')
-    #ax4.plot(perfil.P3_ALTA,label='Qo3-ALTA_H')
+    #Perfiles de pozos tipo
+    fig6, ax6 = plt.subplots(figsize=(10,5))    
+    #ax6.plot(perfil.P_BAJA,label='Qo-P_BAJA')
+    #ax6.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='dashdot')
+    #ax6.plot(perfil.P_ALTA,label='Qo-P_ALTA')
+    #ax6.plot(perfil.P1_BAJA,label='Qo1-BAJA_L')
+    ax6.plot(perfil.P1,label='Qo1-BAJA',linestyle='dashed')
+    #ax6.plot(perfil.P1_ALTA,label='Qo1-BAJA_H')
+    #ax6.plot(perfil.P2_BAJA,label='Qo2-MEDIA_L')
+    ax6.plot(perfil.P2,label='Qo2-MEDIA',linestyle='solid')
+    #ax6.plot(perfil.P2_ALTA,label='Qo2-MEDIA_H')
+    #ax6.plot(perfil.P3_BAJA,label='Qo3-ALTA_L')
+    ax6.plot(perfil.P3,label='Qo3-ALTA',linestyle='dotted')
+    #ax6.plot(perfil.P3_ALTA,label='Qo3-ALTA_H')
+    ax6.set_xlabel('Mes')
+    ax6.set_ylabel('Qo')
     #plt.yscale('log')
     plt.xlim(0,500)
     plt.ylim(0);
-    ax4.set_xlabel('Mes')
-    ax4.set_ylabel('Qo')
     plt.title('Pronostico de produccion para pozo tipo en el campo ' +str(input_campo))
     plt.legend(loc='upper right')
+    plt.show()
 
     toc=timeit.default_timer()
     tac= toc - tic #elapsed time in seconds
