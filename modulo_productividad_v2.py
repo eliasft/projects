@@ -36,8 +36,170 @@ def productividad(hidrocarburo,baja,media,alta):
     
     tic=timeit.default_timer()
     
+##################    AJUSTE DE DISTRIBUCION DE PROBABILIDAD   ######################
     
-##################    INPUT CAMPO   ######################3
+    class Distribution(object):
+    
+        def __init__(self,dist_names_list = []):
+            self.dist_names = ['beta',
+                               'expon',
+                               'gamma',
+                               'lognorm',
+                               'norm',
+                               'pearson3',
+                               'triang',
+                               'uniform',
+                               'weibull_min', 
+                               'weibull_max',
+                               'alpha',             
+                               'anglit',            
+                               'arcsine',           
+                               'argus',          
+                               'beta',              
+                               'betaprime',         
+                               'bradford',          
+                               'burr',              
+                               'burr12',            
+                               'cauchy',            
+                               'chi',               
+                               'chi2',              
+                               'cosine',            
+                               'crystalball',       
+                               'dgamma',            
+                               'dweibull',          
+                               'erlang',            
+                               'expon',             
+                               'exponnorm',         
+                               'exponweib',         
+                               'exponpow',          
+                               'f',                 
+                               'fatiguelife',       
+                               'fisk',              
+                               'foldcauchy',        
+                               'foldnorm',          
+                               'frechet_r',         
+                               'frechet_l',         
+                               'genlogistic',       
+                               'gennorm',           
+                               'genpareto',         
+                               'genexpon',          
+                               'genextreme',        
+                               'gausshyper',        
+                               'gamma',             
+                               'gengamma',          
+                               'genhalflogistic',   
+                               'gilbrat',           
+                               'gompertz',          
+                               'gumbel_r',          
+                               'gumbel_l',          
+                               'halfcauchy',        
+                               'halflogistic',      
+                               'halfnorm',          
+                               'halfgennorm',       
+                               'hypsecant',         
+                               'invgamma',          
+                               'invgauss',          
+                               'invweibull',        
+                               'johnsonsb',         
+                               'johnsonsu',         
+                               'kappa4',            
+                               'kappa3',            
+                               'ksone',             
+                               'kstwobign',         
+                               'laplace',           
+                               'levy',              
+                               'levy_l',
+                               'levy_stable',
+                               'logistic',          
+                               'loggamma',          
+                               'loglaplace',        
+                               'lognorm',           
+                               'lomax',             
+                               'maxwell',           
+                               'mielke',            
+                               'moyal',             
+                               'nakagami',          
+                               'ncx2',              
+                               'ncf',               
+                               'nct',               
+                               'norm',              
+                               'norminvgauss',      
+                               'pareto',            
+                               'pearson3',          
+                               'powerlaw',          
+                               'powerlognorm',      
+                               'powernorm',         
+                               'rdist',             
+                               'reciprocal',        
+                               'rayleigh',          
+                               'rice',              
+                               'recipinvgauss',     
+                               'semicircular',      
+                               'skewnorm',          
+                               't',                 
+                               'trapz',             
+                               'triang',            
+                               'truncexpon',        
+                               'truncnorm',         
+                               'tukeylambda',       
+                               'uniform',           
+                               'vonmises',          
+                               'vonmises_line',     
+                               'wald',              
+                               'weibull_min',      
+                               'weibull_max',       
+                               'wrapcauchy']
+            
+            self.dist_results = []
+            self.params = {}
+
+            self.DistributionName = ""
+            self.PValue = 0
+            self.Param = None
+
+            self.isFitted = False
+
+
+        def Fit(self, y):
+            self.dist_results = []
+            self.params = {}
+            for dist_name in self.dist_names:
+                dist = getattr(scipy.stats, dist_name)
+                param = dist.fit(y)
+
+                self.params[dist_name] = param
+                #Applying the Kolmogorov-Smirnov test
+                D, p = scipy.stats.kstest(y, dist_name, args=param);
+                self.dist_results.append((dist_name,p))
+            #select the best fitted distribution
+            sel_dist,p = (max(self.dist_results,key=lambda item:item[1]))
+            #store the name of the best fit and its p value
+            self.DistributionName = sel_dist
+            self.PValue = p
+
+            self.isFitted = True
+            return self.DistributionName,self.PValue
+
+        def Random(self, n = 1):
+            if self.isFitted:
+                dist_name = self.DistributionName
+                param = self.params[dist_name]
+                #initiate the scipy distribution
+                dist = getattr(scipy.stats, dist_name)
+                return dist.rvs(*param[:-2], loc=param[-2], scale=param[-1], size=n)
+            else:
+                raise ValueError('Must first run the Fit method.')
+
+        def Plot(self,y):
+            x = self.Random(n=len(y))
+            fig, ax = plt.subplots(figsize=(16,8))
+            plt.hist(x, alpha=0.5, label='Fitted',bins=50)
+            plt.hist(y, alpha=0.5, label='Actual',bins=50)
+            plt.legend(loc='upper right')
+
+    
+    
+##################    INPUT CAMPO   ######################
     
     #input de campo de analisis
     def campo_analisis():
@@ -135,7 +297,7 @@ def productividad(hidrocarburo,baja,media,alta):
         #df_beginning_production df
         return df_beginning_production[variable_column].max()
 
-    def hyperbolic_equation(t, qi, b, di):
+    def hiperbolica(t, qi, b, di):
         """
         Hyperbolic decline curve equation
         Arguments:
@@ -149,7 +311,7 @@ def productividad(hidrocarburo,baja,media,alta):
         """
         return qi/((1.0+b*di*t)**(1.0/b))
 
-    def exponential_equation(t, qi, di):
+    def exponencial(t, qi, di):
         """
         Exponential decline curve equation
         Arguments:
@@ -162,7 +324,7 @@ def productividad(hidrocarburo,baja,media,alta):
         """
         return qi*np.exp(-di*t)
 
-    def harmonic_equation (t, qi, di):
+    def harmonica(t, qi, di):
         """
         Harmonic decline curve equation
         Arguments:
@@ -243,27 +405,36 @@ def productividad(hidrocarburo,baja,media,alta):
             #Columna de mes de producción
             serie_produccion.loc[:,'mes']=(serie_produccion[hidrocarburo] > 0).cumsum()
     
+            #Exponential curve fit the data to get best fit equation
+            #popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'], 
+             #                            serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
+            #print('Exponential Fit Curve-fitted Variables: qi='+str(popt_exp[0])+', di='+str(popt_exp[1]))
+
             #Ajuste Hiperbolico
-            popt_hyp, pcov_hyp=curve_fit(hyperbolic_equation, serie_produccion['mes'], 
+            popt_hyp, pcov_hyp=curve_fit(hiperbolica, serie_produccion['mes'], 
                                          serie_produccion[hydrocarbon],bounds=(0, [qi,1,50]))
             #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
            
             #Ajuste Harmonico
-            popt_harm, pcov_harm=curve_fit(harmonic_equation, serie_produccion['mes'], 
+            popt_harm, pcov_harm=curve_fit(harmonica, serie_produccion['mes'], 
                                          serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
             #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
     
+            #Resultados de funcion Exponencial
+            #serie_produccion.loc[:,'exponencial']=exponencial(serie_produccion['mes'], 
+             #                     *popt_exp)
+            
             #Resultados de funcion Hiperbolica
-            serie_produccion.loc[:,'hiperbolica']=hyperbolic_equation(serie_produccion['mes'], 
+            serie_produccion.loc[:,'hiperbolica']=hiperbolica(serie_produccion['mes'], 
                                       *popt_hyp)
             #Resultados de funcion Harmonica
-            serie_produccion.loc[:,'harmonica']=harmonic_equation(serie_produccion['mes'], 
+            serie_produccion.loc[:,'harmonica']=harmonica(serie_produccion['mes'], 
                                       *popt_harm)
             
             #Error
             perr_hyp = np.sqrt(np.diag(pcov_hyp))
             perr_harm = np.sqrt(np.diag(pcov_harm))
-    
+                
             seleccion_base=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
             
             fit=[[pozo,
@@ -276,8 +447,8 @@ def productividad(hidrocarburo,baja,media,alta):
                   popt_harm[1],
                   perr_harm[0],
                   perr_harm[1],
-                  float(seleccion_base[hidrocarburo]),
-                  int(seleccion_base.mes)]]
+                  seleccion_base[hidrocarburo],
+                  (seleccion_base.mes)]]
     
             Qi=[[pozo,
                  qi,
@@ -315,11 +486,11 @@ def productividad(hidrocarburo,baja,media,alta):
                                   7:'di_harm',
                                   8:'error_Qi_harm',
                                   9:'error_di_harm',
-                                  9:hidrocarburo,
-                                 10:'mes'})
+                                 10:hidrocarburo,
+                                 11:'mes'})
         
         gasto=gasto.rename(columns={0:'pozo',
-                                    1:'Qi',
+                                    1:'Qi_hist',
                                     2:'Qi_hyp',
                                     3:'b',
                                     4:'di_hyp',
@@ -328,7 +499,7 @@ def productividad(hidrocarburo,baja,media,alta):
                                     7:'Qi_harm',
                                     8:'di_harm',
                                     9:'error_Qi_harm',
-                                    10:'error_di_harm'})
+                                   10:'error_di_harm'})
         
         estadistica=resultados.describe()
         
@@ -352,9 +523,9 @@ def productividad(hidrocarburo,baja,media,alta):
     df['dias']=pd.DatetimeIndex(fechas).day
     df['periodo']=periodo
     
-    q_baja=gasto.Qi.quantile(baja)
-    q_media=gasto.Qi.quantile(media)
-    q_alta=gasto.Qi.quantile(alta)
+    q_baja=gasto.Qi_hist.quantile(baja)
+    q_media=gasto.Qi_hist.quantile(media)
+    q_alta=gasto.Qi_hist.quantile(alta)
     
     #d_baja=gasto.di.quantile(baja)
     d_media=gasto.di_hyp.quantile(media)
@@ -365,13 +536,13 @@ def productividad(hidrocarburo,baja,media,alta):
     #d=gasto.di_harm.mean()
     b=gasto.b.mean()  
 
-    criterio1=(gasto['Qi'] <= q_baja)
+    criterio1=(gasto['Qi_hist'] <= q_baja)
     tipo1=gasto.loc[criterio1]
     
 
-    #q_baja_1=tipo1.Qi.quantile(baja)
-    q_media_1=tipo1.Qi.quantile(media)
-    #q_alta_1=tipo1.Qi.quantile(alta)
+    #q_baja_1=tipo1.Qi_hist.quantile(baja)
+    q_media_1=tipo1.Qi_hist.quantile(media)
+    #q_alta_1=tipo1.Qi_hist.quantile(alta)
     
     #d_baja_1=tipo1.di.quantile(baja)
     d_media_1=tipo1.di_hyp.quantile(media)
@@ -382,13 +553,13 @@ def productividad(hidrocarburo,baja,media,alta):
     #d1=tipo1.di_harm.mean()
     b1=tipo1.b.mean()
     
-    criterio2=(gasto['Qi'] > q_baja) & (gasto['Qi'] < q_alta)
+    criterio2=(gasto['Qi_hist'] > q_baja) & (gasto['Qi_hist'] < q_alta)
     tipo2=gasto.loc[criterio2]
     
     
-    #q_baja_2=tipo2.Qi.quantile(baja)
-    q_media_2=tipo2.Qi.quantile(media)
-    #q_alta_2=tipo2.Qi.quantile(alta)
+    #q_baja_2=tipo2.Qi_hist.quantile(baja)
+    q_media_2=tipo2.Qi_hist.quantile(media)
+    #q_alta_2=tipo2.Qi_hist.quantile(alta)
     
     #d_baja_2=tipo2.di.quantile(baja)
     d_media_2=tipo2.di_hyp.quantile(media)
@@ -399,12 +570,12 @@ def productividad(hidrocarburo,baja,media,alta):
     #d2=tipo2.di_harm.mean()
     b2=tipo2.b.mean()    
     
-    criterio3=(gasto['Qi'] >= q_alta)
+    criterio3=(gasto['Qi_hist'] >= q_alta)
     tipo3=gasto.loc[criterio3]
     
-    #q_baja_3=tipo3.Qi.quantile(baja)
-    q_media_3=tipo3.Qi.quantile(media)
-    #q_alta_3=tipo3.Qi.quantile(alta)
+    #q_baja_3=tipo3.Qi_hist.quantile(baja)
+    q_media_3=tipo3.Qi_hist.quantile(media)
+    #q_alta_3=tipo3.Qi_hist.quantile(alta)
     
     #d_baja_3=tipo3.di.quantile(baja)
     d_media_3=tipo3.di_hyp.quantile(media)
@@ -426,41 +597,41 @@ def productividad(hidrocarburo,baja,media,alta):
         #perfil['Np']=((q_media**b)/((b-1)*d))*((perfil.P50_MEDIA**(1-b))-(q_media**(1-b)))
 
         #perfil['P1_BAJA']=(q_baja_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
-        perfil['P1']=(q_media_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
+        perfil['tipo1_baja']=(q_media_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
         #perfil['P1_ALTA']=(q_alta_1/((1.0+b1*d1*df.periodo)**(1.0/b1)))
 
         #perfil['P2_BAJA']=(q_baja_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
-        perfil['P2']=(q_media_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
+        perfil['tipo2_media']=(q_media_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
         #perfil['P2_ALTA']=(q_alta_2/((1.0+b2*d2*df.periodo)**(1.0/b2)))
         
         #perfil['P3_BAJA']=(q_baja_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
-        perfil['P3']=(q_media_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
+        perfil['tipo3_alta']=(q_media_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
         #perfil['P3_ALTA']=(q_alta_3/((1.0+b3*d3*df.periodo)**(1.0/b3)))
         
         #perfil['agregado']=(.20)*perfil.P1_MEDIA+(.50)*perfil.P2_MEDIA+(.20)*perfil.P3_MEDIA
-        
-    d = {'Qi': [tipo1.Qi.mean(), tipo2.Qi.mean(),tipo3.Qi.mean()],
-     'Qi_hyp': [tipo1.Qi_hyp.mean(), tipo2.Qi_hyp.mean(),tipo3.Qi_hyp.mean()],
-     'Qi_harm': [tipo1.Qi_harm.mean(), tipo2.Qi_harm.mean(),tipo3.Qi_harm.mean()],
-     'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
-     'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
-     'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
-     'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
-     'error_Qi_harm':[tipo1.error_Qi_harm.mean(), tipo2.error_Qi_harm.mean(),tipo3.error_Qi_harm.mean()],
-     'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()],
-     'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()]}
+
+    d = {'Qi_hist': [tipo1.Qi_hist.mean(), tipo2.Qi_hist.mean(),tipo3.Qi_hist.mean()],
+         'Qi_hyp': [tipo1.Qi_hyp.mean(), tipo2.Qi_hyp.mean(),tipo3.Qi_hyp.mean()],
+         'Qi_harm': [tipo1.Qi_harm.mean(), tipo2.Qi_harm.mean(),tipo3.Qi_harm.mean()],
+         'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
+         'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
+         'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
+         'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
+         'error_Qi_harm':[tipo1.error_Qi_harm.mean(), tipo2.error_Qi_harm.mean(),tipo3.error_Qi_harm.mean()],
+         'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()],
+         'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()]}
     
     ajuste = pd.DataFrame(data=d,index=['Tipo1','Tipo2','Tipo3'])
-    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/ajuste.csv')
+    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
         
     #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
     perfil=perfil.set_index('mes')
     perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfiles_tipo.csv')
     
-    display('Qi50 del campo:  '+str(gasto.Qi.quantile(.5)),
-            'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi.quantile(.5)),
-            'Qi50 del Pozo Tipo 2:  '+str(tipo2.Qi.quantile(.5)),
-            'Qi50 del Pozo Tipo 3:  '+str(tipo3.Qi.quantile(.5)))
+    display('Qi50 del campo:  '+str(gasto.Qi_hist.quantile(.5)),
+            'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
+            'Qi50 del Pozo Tipo 2:  '+str(tipo2.Qi_hist.quantile(.5)),
+            'Qi50 del Pozo Tipo 3:  '+str(tipo3.Qi_hist.quantile(.5)))
 
     display('d_media del campo:  '+str(gasto.di_harm.quantile(.5)),
             'd_media hyp del Pozo Tipo 1:  '+str(tipo1.di_hyp.quantile(.5)),
@@ -470,13 +641,10 @@ def productividad(hidrocarburo,baja,media,alta):
             'd_media harm del Pozo Tipo 2:  '+str(tipo2.di_harm.quantile(.5)),
             'd_media harm del Pozo Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
       
-    distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),
-                                                     len(tipo2),
-                                                     len(tipo3)]},
+    distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),len(tipo2),len(tipo3)]},
                               index=['tipo1','tipo2','tipo3'])
     
     
-
 
 #########################  GRAFICAS DE RESULTADOS   ##################### 
 
@@ -494,23 +662,28 @@ def productividad(hidrocarburo,baja,media,alta):
     #ax.set_ylabel('Profundidad vertical')
     #plt.show()
     
+    #Ajuste de distribucion
+    #dst=Distribution()
+    #display(dst.Fit(campo['aceite_Mbd']))
+    #dst.Plot(campo['aceite_Mbd'])
+    
     #Distribucion del gasto inicial Qi
     fig0, ax0 = plt.subplots(figsize=(10,5))
-    plt.hist(gasto.Qi, alpha=0.5, label='Qi',bins=10)
+    plt.hist(gasto.Qi_hist, alpha=0.5, label='Qi_hist',density=True)
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Distribucion de la declinacion inicial di
     fig1, ax1 = plt.subplots(figsize=(10,5))
-    plt.hist(gasto.di_hyp, alpha=0.5, label='di',bins=10,color='Green')
+    plt.hist(gasto.di_hyp, alpha=0.5, label='di',color='Green',density=True)
     plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Distribucion del gasto historico vs pronosticado
     fig2, ax2 = plt.subplots(figsize=(10,5))
-    plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',bins=50)
-    plt.hist(resultados.hiperbolica, alpha=0.5, label='Hyperbolic Predicted',bins=50)
-    plt.hist(resultados.harmonica, alpha=0.5, label='Harmonic Predicted',bins=50)
+    plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',density=True)
+    plt.hist(resultados.hiperbolica, alpha=0.5, label='Hyperbolic Predicted',density=True)#,cumulative=True)
+    plt.hist(resultados.harmonica, alpha=0.5, label='Harmonic Predicted',density=True)
     plt.title('Distribucion del gasto historico vs pronosticado ' +str(input_campo))
     plt.legend(loc='upper right')
     
@@ -524,10 +697,10 @@ def productividad(hidrocarburo,baja,media,alta):
     
     #Dispersion del gasto inicial Qi
     fig4, ax4 = plt.subplots(figsize=(10,5))
-    ax4.scatter(gasto.Qi,gasto.pozo,color='Gray')
-    ax4.scatter(tipo1.Qi,tipo1.pozo,color='Red',label='Pozo Tipo 1 - BAJA')
-    ax4.scatter(tipo2.Qi,tipo2.pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
-    ax4.scatter(tipo3.Qi,tipo3.pozo,color='Green',label='Pozo Tipo 3 - ALTA')
+    ax4.scatter(gasto.Qi_hist,gasto.pozo,color='Gray')
+    ax4.scatter(tipo1.Qi_hist,tipo1.pozo,color='Red',label='Pozo Tipo 1 - BAJA')
+    ax4.scatter(tipo2.Qi_hist,tipo2.pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
+    ax4.scatter(tipo3.Qi_hist,tipo3.pozo,color='Green',label='Pozo Tipo 3 - ALTA')
     ax4.set_xlabel('Gasto inicial Qi')
     ax4.set_ylabel('Pozo')
     plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
@@ -549,13 +722,13 @@ def productividad(hidrocarburo,baja,media,alta):
     #ax6.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='dashdot')
     #ax6.plot(perfil.P_ALTA,label='Qo-P_ALTA')
     #ax6.plot(perfil.P1_BAJA,label='Qo1-BAJA_L')
-    ax6.plot(perfil.P1,label='Qo1-BAJA',linestyle='dashed')
+    ax6.plot(perfil.tipo1_baja,label='Qo1-BAJA',linestyle='dotted',color='red')
     #ax6.plot(perfil.P1_ALTA,label='Qo1-BAJA_H')
     #ax6.plot(perfil.P2_BAJA,label='Qo2-MEDIA_L')
-    ax6.plot(perfil.P2,label='Qo2-MEDIA',linestyle='solid')
+    ax6.plot(perfil.tipo2_media,label='Qo2-MEDIA',linestyle='solid',color='blue')
     #ax6.plot(perfil.P2_ALTA,label='Qo2-MEDIA_H')
     #ax6.plot(perfil.P3_BAJA,label='Qo3-ALTA_L')
-    ax6.plot(perfil.P3,label='Qo3-ALTA',linestyle='dotted')
+    ax6.plot(perfil.tipo3_alta,label='Qo3-ALTA',linestyle='dashed',color='green')
     #ax6.plot(perfil.P3_ALTA,label='Qo3-ALTA_H')
     ax6.set_xlabel('Mes')
     ax6.set_ylabel('Qo')
