@@ -22,6 +22,33 @@ pd.options.display.float_format = '{:,.2f}'.format
 
 warnings.filterwarnings("ignore")
 
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan 31 14:54:24 2020
+
+@author: elias
+"""
+
+import pandas as pd
+import os
+
+import timeit
+
+def carga_bd():
+    
+    global uk_bd
+    
+    tic=timeit.default_timer()
+    
+    uk_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/united_kingdom/uk_benchmark.csv',
+                             header='infer',skipinitialspace=True,low_memory=False)
+    
+    toc=timeit.default_timer()
+    tac= toc - tic #elapsed time in seconds
+
+    return display('Tiempo de procesamiento: ' +str(tac)+' segundos')
+
+carga_bd()
 
 def productividad(hidrocarburo,baja,media,alta):
     
@@ -33,6 +60,7 @@ def productividad(hidrocarburo,baja,media,alta):
     global tipo2
     global tipo3
     global ajuste
+    global campo
     
     tic=timeit.default_timer()
     
@@ -210,12 +238,12 @@ def productividad(hidrocarburo,baja,media,alta):
         #Input de campo
         input_campo = input("Nombre de campo: ")
 
-        seleccion=mx_bd.pozo.str.contains(str(input_campo))
-        campo=mx_bd.loc[seleccion]
+        seleccion=uk_bd.FIELDNAME.str.contains(str(input_campo))
+        campo=uk_bd.loc[seleccion]
 
-        unique_well_list=pd.unique(campo['pozo'])
+        unique_well_list=pd.unique(campo['FIELDNAME'])
 
-        display('Número de pozos en ' +str(input_campo)+': '+str(len(unique_well_list)))
+        display('Número de FIELDNAMEs en ' +str(input_campo)+': '+str(len(unique_well_list)))
 
         #Generacion de archivo de resultados
         #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
@@ -223,7 +251,7 @@ def productividad(hidrocarburo,baja,media,alta):
         return campo
     
 
-########      FUNCIONES PARA EL ANALISIS DE DECLINACION DE POZOS      ####### 
+########      FUNCIONES PARA EL ANALISIS DE DECLINACION DE FIELDNAMES      ####### 
     
     def remove_nan_and_zeroes_from_columns(df, variable):
         """
@@ -352,7 +380,7 @@ def productividad(hidrocarburo,baja,media,alta):
         plt.show()
     
     
-#############     ANÁLISIS DE DECLINACION DE POZOS (DCA)   #############
+#############     ANÁLISIS DE DECLINACION DE FIELDNAMES (DCA)   #############
 
     def analisis_dca():
         
@@ -367,40 +395,40 @@ def productividad(hidrocarburo,baja,media,alta):
         
         #Entrada de campo de análisis
         campo_analisis()
-        data_pozos=campo
+        data_FIELDNAMEs=campo
         
-        #Limpieza de datos y formato de fecha
-        data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'])
+        #Limpieza de datos y formato de date
+        data_FIELDNAMEs['date']=pd.to_datetime(data_FIELDNAMEs['date'])
         
         #hidrocarburo de análisis
         hydrocarbon=str(hidrocarburo)
         
         #Remove all rows with null values in the desired time series column
-        data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hydrocarbon)
+        data_FIELDNAMEs=remove_nan_and_zeroes_from_columns(data_FIELDNAMEs, hydrocarbon)
         
         #Get a list of unique wells to loop through
-        unique_well_list=pd.unique(list(data_pozos.pozo))
+        unique_well_list=pd.unique(list(data_FIELDNAMEs.FIELDNAME))
         
         #Get the earliest RecordDate for each Well
-        data_pozos['first_oil']= get_min_or_max_value_in_column_by_group(data_pozos, group_by_column='pozo', 
-                                                                        calc_column='fecha', calc_type='min')
+        data_FIELDNAMEs['first_oil']= get_min_or_max_value_in_column_by_group(data_FIELDNAMEs, group_by_column='FIELDNAME', 
+                                                                        calc_column='date', calc_type='min')
         #Generate column for time online delta
-        data_pozos['days_online']=generate_time_delta_column(data_pozos, time_column='fecha', 
+        data_FIELDNAMEs['days_online']=generate_time_delta_column(data_FIELDNAMEs, time_column='date', 
                       date_first_online_column='first_oil')
         #Pull data that came online between an specified range
-        data_pozos_range=data_pozos[(data_pozos.fecha>='1900-01-01') & (data_pozos.fecha<='2019-12-01')]
+        data_FIELDNAMEs_range=data_FIELDNAMEs[(data_FIELDNAMEs.date>='1900-01-01') & (data_FIELDNAMEs.date<='2019-12-01')]
         
-        #Loop para realizar el DCA en cada pozo del campo
-        for pozo in unique_well_list:
+        #Loop para realizar el DCA en cada FIELDNAME del campo
+        for FIELDNAME in unique_well_list:
             
-            #Subset el data frame del campo por pozo
-            serie_produccion=data_pozos_range[data_pozos_range.pozo==pozo]
+            #Subset el data frame del campo por FIELDNAME
+            serie_produccion=data_FIELDNAMEs_range[data_FIELDNAMEs_range.FIELDNAME==FIELDNAME]
             
             #Calculo de declinacion porcentual
             serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
             
             #Cálculo de la máxima producción inicial
-            qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
+            qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'date')
             
             #Columna de mes de producción
             serie_produccion.loc[:,'mes']=(serie_produccion[hidrocarburo] > 0).cumsum()
@@ -435,9 +463,9 @@ def productividad(hidrocarburo,baja,media,alta):
             perr_hyp = np.sqrt(np.diag(pcov_hyp))
             perr_harm = np.sqrt(np.diag(pcov_harm))
                 
-            seleccion_base=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
+            seleccion_base=serie_produccion[serie_produccion.date == serie_produccion.date.max()]
             
-            fit=[[pozo,
+            fit=[[FIELDNAME,
                   popt_hyp[0],
                   popt_hyp[1],
                   popt_hyp[2],
@@ -450,7 +478,7 @@ def productividad(hidrocarburo,baja,media,alta):
                   seleccion_base[hidrocarburo],
                   (seleccion_base.mes)]]
     
-            Qi=[[pozo,
+            Qi=[[FIELDNAME,
                  qi,
                  popt_hyp[0],
                  popt_hyp[1],
@@ -467,7 +495,7 @@ def productividad(hidrocarburo,baja,media,alta):
             x_variable='mes'
             
             #Create the plot title
-            plot_title=hydrocarbon+' for '+str(pozo)
+            plot_title=hydrocarbon+' for '+str(FIELDNAME)
             
             #Plot the data to visualize the equation fit
             #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
@@ -476,7 +504,7 @@ def productividad(hidrocarburo,baja,media,alta):
             resultados=resultados.append(serie_produccion,sort=False)
             gasto=gasto.append(Qi,sort=True)
             
-        base=base.rename(columns={0:'pozo',
+        base=base.rename(columns={0:'FIELDNAME',
                                   1:'Qi_hyp',
                                   2:'b',
                                   3:'di_hyp',
@@ -489,7 +517,7 @@ def productividad(hidrocarburo,baja,media,alta):
                                  10:hidrocarburo,
                                  11:'mes'})
         
-        gasto=gasto.rename(columns={0:'pozo',
+        gasto=gasto.rename(columns={0:'FIELDNAME',
                                     1:'Qi_hist',
                                     2:'Qi_hyp',
                                     3:'b',
@@ -510,17 +538,17 @@ def productividad(hidrocarburo,baja,media,alta):
         
     analisis_dca()
     
-#########################  POZOS TIPO - PRONOSTICO DE PRODUCCION Qo   ##################### 
+#########################  FIELDNAMES TIPO - PRONOSTICO DE PRODUCCION Qo   ##################### 
     
     periodo=np.arange(start=1,stop=501,step=1)
-    fechas=pd.date_range(start='01-Jan-2020',freq='M',periods=500,normalize=True,closed='left')
+    dates=pd.date_range(start='01-Jan-2020',freq='M',periods=500,normalize=True,closed='left')
 
     df=pd.DataFrame()
 
-    df['fecha']=fechas
-    df['mes']=pd.DatetimeIndex(fechas).month
-    df['ano']=pd.DatetimeIndex(fechas).year
-    df['dias']=pd.DatetimeIndex(fechas).day
+    df['date']=dates
+    df['mes']=pd.DatetimeIndex(dates).month
+    df['ano']=pd.DatetimeIndex(dates).year
+    df['dias']=pd.DatetimeIndex(dates).day
     df['periodo']=periodo
     
     q_baja=gasto.Qi_hist.quantile(baja)
@@ -629,19 +657,19 @@ def productividad(hidrocarburo,baja,media,alta):
     perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfiles_tipo.csv')
     
     display('Qi50 del campo:  '+str(gasto.Qi_hist.quantile(.5)),
-            'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
-            'Qi50 del Pozo Tipo 2:  '+str(tipo2.Qi_hist.quantile(.5)),
-            'Qi50 del Pozo Tipo 3:  '+str(tipo3.Qi_hist.quantile(.5)))
+            'Qi50 del FIELDNAME Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
+            'Qi50 del FIELDNAME Tipo 2:  '+str(tipo2.Qi_hist.quantile(.5)),
+            'Qi50 del FIELDNAME Tipo 3:  '+str(tipo3.Qi_hist.quantile(.5)))
 
     display('d_media del campo:  '+str(gasto.di_harm.quantile(.5)),
-            'd_media hyp del Pozo Tipo 1:  '+str(tipo1.di_hyp.quantile(.5)),
-            'd_media hyp del Pozo Tipo 2:  '+str(tipo2.di_hyp.quantile(.5)),
-            'd_media hyp del Pozo Tipo 3:  '+str(tipo3.di_hyp.quantile(.5)),
-            'd_media harm del Pozo Tipo 1:  '+str(tipo1.di_harm.quantile(.5)),
-            'd_media harm del Pozo Tipo 2:  '+str(tipo2.di_harm.quantile(.5)),
-            'd_media harm del Pozo Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
+            'd_media hyp del FIELDNAME Tipo 1:  '+str(tipo1.di_hyp.quantile(.5)),
+            'd_media hyp del FIELDNAME Tipo 2:  '+str(tipo2.di_hyp.quantile(.5)),
+            'd_media hyp del FIELDNAME Tipo 3:  '+str(tipo3.di_hyp.quantile(.5)),
+            'd_media harm del FIELDNAME Tipo 1:  '+str(tipo1.di_harm.quantile(.5)),
+            'd_media harm del FIELDNAME Tipo 2:  '+str(tipo2.di_harm.quantile(.5)),
+            'd_media harm del FIELDNAME Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
       
-    distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),len(tipo2),len(tipo3)]},
+    distribucion=pd.DataFrame(data={'numero_FIELDNAMEs': [len(tipo1),len(tipo2),len(tipo3)]},
                               index=['tipo1','tipo2','tipo3'])
     
     
@@ -687,7 +715,7 @@ def productividad(hidrocarburo,baja,media,alta):
     plt.title('Distribucion del gasto historico vs pronosticado ' +str(input_campo))
     plt.legend(loc='upper right')
     
-    #Pie chart de distribucion de Pozos Tipo 
+    #Pie chart de distribucion de FIELDNAMEs Tipo 
     labels = 'Baja', 'Media', 'Alta'
     explode = (0.1, 0.1, 0.1) 
     fig3, ax3 = plt.subplots(figsize=(10,5))
@@ -697,18 +725,18 @@ def productividad(hidrocarburo,baja,media,alta):
     
     #Dispersion del gasto inicial Qi
     fig4, ax4 = plt.subplots(figsize=(10,5))
-    ax4.scatter(gasto.Qi_hist,gasto.pozo,color='Gray')
-    ax4.scatter(tipo1.Qi_hist,tipo1.pozo,color='Red',label='Pozo Tipo 1 - BAJA')
-    ax4.scatter(tipo2.Qi_hist,tipo2.pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
-    ax4.scatter(tipo3.Qi_hist,tipo3.pozo,color='Green',label='Pozo Tipo 3 - ALTA')
+    ax4.scatter(gasto.Qi_hist,gasto.FIELDNAME,color='Gray')
+    ax4.scatter(tipo1.Qi_hist,tipo1.FIELDNAME,color='Red',label='FIELDNAME Tipo 1 - BAJA')
+    ax4.scatter(tipo2.Qi_hist,tipo2.FIELDNAME,color='Blue',label='FIELDNAME Tipo 2 - MEDIA')
+    ax4.scatter(tipo3.Qi_hist,tipo3.FIELDNAME,color='Green',label='FIELDNAME Tipo 3 - ALTA')
     ax4.set_xlabel('Gasto inicial Qi')
-    ax4.set_ylabel('Pozo')
+    ax4.set_ylabel('FIELDNAME')
     plt.title('Dispersion del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     plt.show()
     
     #Tiempo de produccion vs Gasto de hidrocarburo
-    #resultados=resultados.groupby(by='pozo')
+    #resultados=resultados.groupby(by='FIELDNAME')
     fig5, ax5 = plt.subplots(figsize=(10,5))
     ax5.scatter(resultados.mes,resultados[hidrocarburo],color='Gray',alpha=0.5)
     plt.title('Tiempo vs Gasto de ' +str(hidrocarburo))
@@ -716,7 +744,7 @@ def productividad(hidrocarburo,baja,media,alta):
     ax5.set_ylabel('Qo')
     plt.show()
 
-    #Perfiles de pozos tipo
+    #Perfiles de FIELDNAMEs tipo
     fig6, ax6 = plt.subplots(figsize=(10,5))    
     #ax6.plot(perfil.P_BAJA,label='Qo-P_BAJA')
     #ax6.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='dashdot')
@@ -735,7 +763,7 @@ def productividad(hidrocarburo,baja,media,alta):
     #plt.yscale('log')
     plt.xlim(0,500)
     plt.ylim(0);
-    plt.title('Pronostico de produccion para pozo tipo en el campo ' +str(input_campo))
+    plt.title('Pronostico de produccion para FIELDNAME tipo en el campo ' +str(input_campo))
     plt.legend(loc='upper right')
     plt.show()
 

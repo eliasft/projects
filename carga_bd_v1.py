@@ -6,16 +6,7 @@ Created on Fri Jan 31 14:54:24 2020
 """
 
 import pandas as pd
-import seaborn as sns
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-import scipy
-import scipy.stats
-from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta,date
-%matplotlib inline
 
 import timeit
 
@@ -25,7 +16,7 @@ def carga_bd():
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_bd.csv',
+    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_bd.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
