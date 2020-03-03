@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 24 18:22:13 2020
-
-@author: elias
-"""
-
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -22,8 +15,6 @@ from scipy.optimize import minimize
 from datetime import datetime, timedelta,date
 %matplotlib inline
 
-import cashflows as cf
-
 import timeit
 import warnings
 
@@ -36,6 +27,25 @@ pd.set_option('precision', 2)
 pd.options.display.float_format = '{:,.2f}'.format
 
 warnings.filterwarnings("ignore")
+
+plt.rcParams.update({'font.size': 18})
+
+#########################################                            ########################################
+
+
+
+
+########################################          PRODUCTIVIDAD     #########################################
+
+
+
+
+########################################                            #########################################
+
+
+
+
+
 
 ##################    CARGA DE BASE DE DATOS DE CNH   ######################
 
@@ -73,11 +83,10 @@ def carga_bd():
 
     return display('Tiempo de procesamiento: ' +str(tac)+' segundos')
 
-carga_bd()
 
 ##################    FUNCIÓN DE PRODUCTIVIDAD   ######################
 
-def productividad(hidrocarburo,baja,media,alta):
+def productividad(baja,media,alta):
     
     global unique_well_list
     global perfil
@@ -96,26 +105,62 @@ def productividad(hidrocarburo,baja,media,alta):
     #input de campo de analisis
     def campo_analisis():
         
-        global input_campo
+        global input_campo, input_hidrocarburo
         global campo
         global len_proy
         global nequip
         global cap
         global reservas
         global num_pozos
+        global pozos_tipo1,pozos_tipo2,pozos_tipo3
+        global regimen_fiscal, regalia_adicional, region_fiscal
+        global hidrocarburo, input_fecha
     
         #Input de campo
         input_campo = input("Nombre de campo: ")
-        duracion=int(input('Duracion del contrato (años): '))
+        
+        input_hidrocarburo=input("Hidrocarburo de analisis: ")
+        hidrocarburo=str(input_hidrocarburo)
+        
+        input_fecha=input("Fecha de inicio de análisis (yyyy-01-01): ")
+        
+        #duracion=int(input('Duracion del contrato (años): '))
         #nequip=input('Numero de equipos: ')
         #cap=input('Capacidad de procesamiento (Mbd: ')
         #reservas=input('Reservas: ')
         
+        #Regimen Fiscal especificar si es "licencia", "cpc" o "asignacion" 
+        #print("Régimen Fiscal:")
+        #regimen_fiscal = input("Régimen Fiscal: ") #"licencia"
+        #regimen_fiscal = str(regimen_fiscal)
+        #if regimen_fiscal not in ["licencia","cpc","asignacion"]:
+         #   raise SystemExit("Párametro Inválido")
+
+
+
+        #if regimen_fiscal == "licencia":
+         #   regalia_adicional = input("Regalía Adicional Decimales: ") #En decimales el porcentaje de regalía adicional para los contratos de licencia
+          #  regalia_adicional = float(regalia_adicional)
+
+        #Region fiscal: aceite_terrestre, aguas_someras, aguas_profundas, gas, chicontepec 
+        #region_fiscal =  input("Región Fiscal: ") #"aceite_terrestre"   
+        #region_fiscal=str(region_fiscal)
+        #if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
+         #   raise SystemExit("Párametro Inválido")
+        
+        
+        len_proy=0
+        
+        duracion=40
         len_proy=duracion*12
-        nequip=2
-        cap=5_000
-        reservas=1_000_000
-        num_pozos=14
+        num_pozos=6
+        nequip=1
+        cap=1_000
+        reservas=60_000_000
+        
+        pozos_tipo1=np.round(num_pozos*baja,0)
+        pozos_tipo2=np.round(num_pozos*media,0)
+        pozos_tipo3=num_pozos-(pozos_tipo1+pozos_tipo2)
 
         seleccion=mx_bd.pozo.str.contains(str(input_campo))
         campo=mx_bd.loc[seleccion]
@@ -263,12 +308,14 @@ def productividad(hidrocarburo,baja,media,alta):
 
     def analisis_dca():
         
-        global resultados, gasto, prod_base
+        global resultados, gasto, prod_base, Q_base, G_base, C_base, resultados_desde
         
         resultados=pd.DataFrame()
         gasto=pd.DataFrame()
         Qi=pd.DataFrame()
         prod_base=pd.DataFrame()
+        
+        resultados_desde=pd.DataFrame()
         
         #Entrada de campo de análisis
         campo_analisis()
@@ -278,7 +325,9 @@ def productividad(hidrocarburo,baja,media,alta):
         data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'])
         
         #hidrocarburo de análisis
-        hydrocarbon=str(hidrocarburo)
+        hydrocarbon=hidrocarburo
+        gas='gas_asociado_MMpcd'
+        condensado='condensado_Mbd'
         
         #Remove all rows with null values in the desired time series column
         data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hydrocarbon)
@@ -296,20 +345,51 @@ def productividad(hidrocarburo,baja,media,alta):
         #Pull data that came online between an specified range
         data_pozos_range=data_pozos[(data_pozos.fecha>='1900-01-01') & (data_pozos.fecha<='2019-12-01')]
         
+        pozos_desde=data_pozos[(data_pozos.first_oil>=input_fecha) & (data_pozos.first_oil<='2019-12-01')]
+        
         #Loop para realizar el DCA en cada pozo del campo
         for pozo in unique_well_list:
             
             #Subset del data frame del campo por pozo
             serie_produccion=data_pozos_range[data_pozos_range.pozo==pozo]
             
+            serie_desde=pozos_desde[pozos_desde.pozo==pozo]
+            
             #Calculo de declinacion porcentual
             serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
             
             #Cálculo de la máxima producción inicial
             qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
+            qi_g=get_max_initial_production(serie_produccion, 500, gas, 'fecha')
+            qi_c=get_max_initial_production(serie_produccion, 500, condensado, 'fecha')
+
+            if qi_g == 0:
+                qi_g = 0.00000000000000000000000000000000000000000001
+            
+            if qi_c == 0:
+                qi_c = 0.00000000000000000000000000000000000000000001
+                
+            qi_desde=get_max_initial_production(serie_desde, 500, hydrocarbon, 'fecha')
+            qi_g_desde=get_max_initial_production(serie_desde, 500, gas, 'fecha')
+            qi_c_desde=get_max_initial_production(serie_desde, 500, condensado, 'fecha')
+
+            if qi_g_desde == 0:
+                qi_g_desde = 0.00000000000000000000000000000000000000000001
+            
+            if qi_c_desde == 0:
+                qi_c_desde = 0.00000000000000000000000000000000000000000001
+            
+            
+            
+            #Resultados de Qi historica
+            serie_produccion.loc[:,'Qi_hist']=qi
+            
+            serie_desde['Qi_desde']=qi_desde
             
             #Columna de mes de producción
             serie_produccion.loc[:,'mes']=(serie_produccion[hidrocarburo] > 0).cumsum()
+            
+            serie_desde['mes']=(serie_desde[hidrocarburo] > 0).cumsum()
     
             #Ajuste Exponencial
             #popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'], 
@@ -319,11 +399,19 @@ def productividad(hidrocarburo,baja,media,alta):
             #Ajuste Hiperbolico
             popt_hyp, pcov_hyp=curve_fit(hiperbolica, serie_produccion['mes'], 
                                          serie_produccion[hydrocarbon],bounds=(0, [qi,1,50]))
+            
+            popt_hyp_g, pcov_hyp_g=curve_fit(hiperbolica, serie_produccion['mes'], 
+                                         serie_produccion[gas],bounds=(0, [qi_g,1,50]))
+            
+            popt_hyp_c, pcov_hyp_c=curve_fit(hiperbolica, serie_produccion['mes'], 
+                                         serie_produccion[condensado],bounds=(0.0, [qi_c,1,50]))
+            
             #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
            
             #Ajuste Harmonico
             popt_harm, pcov_harm=curve_fit(harmonica, serie_produccion['mes'], 
                                          serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
+            
             #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
     
             #Resultados de funcion Exponencial
@@ -336,6 +424,14 @@ def productividad(hidrocarburo,baja,media,alta):
             #Resultados de funcion Harmonica
             serie_produccion.loc[:,'harmonica']=harmonica(serie_produccion['mes'], 
                                       *popt_harm)
+            
+            #Resultados de funcion Gas
+            serie_produccion.loc[:,'gas']=hiperbolica(serie_produccion['mes'], 
+                                      *popt_hyp_g)
+            
+            #Resultados de funcion Condensado
+            serie_produccion.loc[:,'condensado']=hiperbolica(serie_produccion['mes'], 
+                                     *popt_hyp_c)
             
             #Error
             perr_hyp = np.sqrt(np.diag(pcov_hyp))
@@ -357,7 +453,14 @@ def productividad(hidrocarburo,baja,media,alta):
                  seleccion_base[hidrocarburo],
                  seleccion_base.mes,
                  seleccion_base.profundidad_vertical,
-                 str(seleccion_base.trayectoria)]]
+                 str(seleccion_base.trayectoria),
+                 seleccion_base.first_oil,
+                 popt_hyp_g[0],
+                 popt_hyp_g[1],
+                 popt_hyp_g[2],
+                 popt_hyp_c[0],
+                 popt_hyp_c[1],
+                 popt_hyp_c[2]]]
     
             #Plot del Análisis de Declinación de Curvas (DCA)
             #Declare the x- and y- variables that we want to plot against each other
@@ -369,12 +472,13 @@ def productividad(hidrocarburo,baja,media,alta):
             
             #Plot the data to visualize the equation fit
             #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
-    
-            
+                
             #Resultados de DCA
             resultados=resultados.append(serie_produccion,sort=False)
             gasto=gasto.append(Qi,sort=True)
             prod_base=prod_base.append(seleccion_base)
+            
+            resultados_desde=resultados_desde.append(serie_desde)
             
         
         gasto=gasto.rename(columns={0:'pozo',
@@ -391,14 +495,25 @@ def productividad(hidrocarburo,baja,media,alta):
                                    11:hidrocarburo,
                                    12:'mes',
                                    13:'profundidad_vertical',
-                                   14:'trayectoria'})
+                                   14:'trayectoria',
+                                   15:'first_oil',
+                                   16:'Qi_gas',
+                                   17:'b_gas',
+                                   18:'di_gas',
+                                   19:'Qi_condensado',
+                                   20:'b_condensado',
+                                   21:'di_condensado'})
         
         estadistica=resultados.describe()
+        
+        Q_base=prod_base.aceite_Mbd.sum()
+        G_base=prod_base.gas_asociado_MMpcd.sum()
+        C_base=prod_base.condensado_Mbd.sum()
         
         #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
         #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
                 
-        return resultados, gasto
+        return resultados, gasto, Q_base, G_base, C_base, resultados_desde
         
     analisis_dca()
     
@@ -430,7 +545,6 @@ def productividad(hidrocarburo,baja,media,alta):
 
     criterio1=(gasto['Qi_hist'] <= q_baja)
     tipo1=gasto.loc[criterio1]
-    
     
     #q_baja_1=tipo1.Qi_hist.quantile(baja)
     q_media_1=tipo1.Qi_hist.quantile(media)
@@ -511,7 +625,13 @@ def productividad(hidrocarburo,baja,media,alta):
          'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
          'error_Qi_harm':[tipo1.error_Qi_harm.mean(), tipo2.error_Qi_harm.mean(),tipo3.error_Qi_harm.mean()],
          'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()],
-         'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()]}
+         'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()],
+         'Qi_gas': [tipo1.Qi_gas.mean(), tipo2.Qi_gas.mean(),tipo3.Qi_gas.mean()],
+         'b_gas': [tipo1.b_gas.mean(), tipo2.b_gas.mean(),tipo3.b_gas.mean()],
+         'di_gas': [tipo1.di_gas.mean(), tipo2.di_gas.mean(),tipo3.di_gas.mean()],
+         'Qi_condensado': [tipo1.Qi_condensado.mean(), tipo2.Qi_condensado.mean(),tipo3.Qi_condensado.mean()],
+         'b_condensado': [tipo1.b_condensado.mean(), tipo2.b_condensado.mean(),tipo3.b_condensado.mean()],
+         'di_condensado': [tipo1.di_condensado.mean(), tipo2.di_condensado.mean(),tipo3.di_condensado.mean()]}
     
     ajuste = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
     ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
@@ -536,7 +656,6 @@ def productividad(hidrocarburo,baja,media,alta):
     distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),len(tipo2),len(tipo3)]},
                               index=['tipo1','tipo2','tipo3'])
     
-    
 
 #########################  GRAFICAS DE RESULTADOS   ##################### 
 
@@ -560,23 +679,38 @@ def productividad(hidrocarburo,baja,media,alta):
     #dst.Plot(campo['aceite_Mbd'])
     
     #Distribucion del gasto inicial Qi
-    fig0, ax0 = plt.subplots(figsize=(10,5))
+    fig0, ax0 = plt.subplots(figsize=(15,8))  
     plt.hist(gasto.Qi_hist, alpha=0.5, label='Qi_hist',density=True)
+    ax0.set_xlabel('Gasto inicial')
+    ax0.set_ylabel('Densidad')
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Distribucion de la declinacion inicial di
-    fig1, ax1 = plt.subplots(figsize=(10,5))
+    fig1, ax1 = plt.subplots(figsize=(15,8))  
     plt.hist(gasto.di_hyp, alpha=0.5, label='di',color='Green',density=True)
+    ax1.set_xlabel('Declinacion inicial')
+    ax1.set_ylabel('Densidad')
     plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Distribucion del gasto historico vs pronosticado
-    fig2, ax2 = plt.subplots(figsize=(10,5))
+    fig2, ax2 = plt.subplots(figsize=(15,8))  
     plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',density=True)
     plt.hist(resultados.hiperbolica, alpha=0.5, label='Hyperbolic Predicted',density=True)#,cumulative=True)
     plt.hist(resultados.harmonica, alpha=0.5, label='Harmonic Predicted',density=True)
+    ax2.set_xlabel('Gasto Qo')
+    ax2.set_ylabel('Densidad')
     plt.title('Distribucion del gasto historico vs pronosticado ' +str(input_campo))
+    plt.legend(loc='upper right')
+    
+    #Distribucion del gasto historico vs pronosticado
+    fig15, ax15 = plt.subplots(figsize=(15,8))  
+    plt.hist(resultados['gas_asociado_MMpcd'], alpha=0.5, label='Qg historico',density=True)
+    plt.hist(resultados.gas, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
+    ax15.set_xlabel('Gaso Qg')
+    ax15.set_ylabel('Densidad')
+    plt.title('Distribucion de Qg histórico vs Pronosticado ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Pie chart de distribucion de Pozos Tipo 
@@ -588,7 +722,7 @@ def productividad(hidrocarburo,baja,media,alta):
     #plt.show()
     
     #Dispersion del gasto inicial Qi
-    fig4, ax4 = plt.subplots(figsize=(10,5))
+    fig4, ax4 = plt.subplots(figsize=(15,8))  
     ax4.scatter(tipo1.Qi_hist,tipo1.pozo,color='Red',label='Pozo Tipo 1 - BAJA')
     ax4.scatter(tipo2.Qi_hist,tipo2.pozo,color='Blue',label='Pozo Tipo 2 - MEDIA')
     ax4.scatter(tipo3.Qi_hist,tipo3.pozo,color='Green',label='Pozo Tipo 3 - ALTA')
@@ -599,13 +733,23 @@ def productividad(hidrocarburo,baja,media,alta):
     plt.show()
     
     #Dispersion del gasto inicial Qi vs Profundidad Vertical
-    fig7, ax7 = plt.subplots(figsize=(10,5))
+    fig7, ax7 = plt.subplots(figsize=(15,8))  
     ax7.scatter(tipo1.Qi_hist,tipo1.profundidad_vertical,color='Red',alpha=0.5,label='Pozo Tipo 1 - BAJA')
     ax7.scatter(tipo2.Qi_hist,tipo2.profundidad_vertical,color='Blue',alpha=0.5,label='Pozo Tipo 2 - MEDIA')
     ax7.scatter(tipo3.Qi_hist,tipo3.profundidad_vertical,color='Green',alpha=0.5,label='Pozo Tipo 3 - ALTA')
     ax7.set_xlabel('Gasto inicial Qi')
     ax7.set_ylabel('Profundidad Vertical')
     plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' vs Profundidad Vertical')
+    plt.legend(loc='upper right')
+    plt.show()
+    
+    fig10, ax10 = plt.subplots(figsize=(15,8)) 
+    ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='Pozo Tipo 1 - BAJA')
+    ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='Pozo Tipo 2 - MEDIA')
+    ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='Pozo Tipo 3 - ALTA')
+    ax10.set_xlabel('First oil')
+    ax10.set_ylabel('Gasto inicial Qi')
+    plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi')
     plt.legend(loc='upper right')
     plt.show()
     
@@ -622,11 +766,11 @@ def productividad(hidrocarburo,baja,media,alta):
     
     #Tiempo de produccion vs Gasto de hidrocarburo
     #resultados=resultados.groupby(by='pozo')
-    fig5, ax5 = plt.subplots(figsize=(10,5))
+    fig5, ax5 = plt.subplots(figsize=(15,8)) 
     ax5.scatter(resultados.mes, resultados[hidrocarburo],color='Gray',alpha=0.5)
-    plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
     ax5.set_xlabel('Mes')
     ax5.set_ylabel('Qo')
+    plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
     plt.show()
     
     #fig9, ax9 = plt.subplots(figsize=(10,5))
@@ -637,7 +781,7 @@ def productividad(hidrocarburo,baja,media,alta):
     #plt.show()
 
     #Perfiles de pozos tipo
-    fig6, ax6 = plt.subplots(figsize=(10,5))    
+    fig6, ax6 = plt.subplots(figsize=(15,8))    
     #ax6.plot(perfil.P_BAJA,label='Qo-P_BAJA')
     #ax6.plot(perfil.P50_MEDIA,label='Qo-P_MEDIA',linestyle='dashdot')
     #ax6.plot(perfil.P_ALTA,label='Qo-P_ALTA')
@@ -655,592 +799,37 @@ def productividad(hidrocarburo,baja,media,alta):
     #plt.yscale('log')
     plt.xlim(0,len_proy)
     plt.ylim(0);
-    plt.title('Pronostico de produccion para pozo tipo en el campo ' +str(input_campo))
+    plt.title('Perfil de produccion para pozo tipo en el campo ' +str(input_campo))
     plt.legend(loc='upper right')
     plt.show()
 
     toc=timeit.default_timer()
     tac= toc - tic #elapsed time in seconds
-
-    return display('Tiempo de procesamiento: ' +str(tac)+' segundos')
-
-
-productividad('aceite_Mbd',0.30,0.50,0.90)
-
-#######################     OPTIMIZACIÓN DE PERFORACIÓN     ##################
-
-def exp_curve(q0,a,t):
-    if t>=0:
-        x=q0*np.exp(-1*a*t)
-        return x
-    else:
-        x=0
-        return x
-
-t=pd.Series(range(0,len_proy))
-pt1=[exp_curve(100,.02,x) for x in t.index]
-plt.plot(pt1)
-
-perf=np.array([0,0])
-
-
-def np_perf(perf,len_proy):
-    Np=pd.Series(0,index=range(0,len_proy))
-    for i in perf:
-        Np=Np+[exp_curve(100,.02,x-i) for x in Np.index]
-    return(Np)
-
-
-def objfunction(Np,len_proy):
-    x=pd.Series(1,index=range(0,len_proy))
-    x=x*200
-    sumsquared=sum([(x[i]-Np[i])**2 for i in x.index])
-    return(sumsquared)
     
+    #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
-def funoptim(perf):
-    Np=np_perf(perf,len_proy)
-    x=objfunction(Np)
-    return(x)
+    return
+
+
+def plot_Qi():
     
+    fig1, ax1 = plt.subplots(figsize=(15,8))  
+    plt.hist(resultados[hidrocarburo], alpha=0.8, label='Qi Historico',density=True)
+    plt.hist(resultados_desde[hidrocarburo], alpha=0.5, label='First oil > '+str(input_fecha),density=True)
+    ax1.set_xlabel('Gasto Qo')
+    ax1.set_ylabel('Densidad')
+    plt.title('Distribucion del Qo historico vs First Oil >')
+    plt.legend(loc='upper right')
+    plt.show
     
-x0=perf
-cons=({'type': 'ineq', 'fun': lambda x:   x[0]-2-x[1]})
-bnds=((0,200),(None,200))
-x=minimize(funoptim,(0,0),method='SLSQP',constraints=cons,bounds=bnds)
-
-
-x=bd.groupby(["fecha","nivel","numero_de_asignacion","entidad","categoria_de_reserva"]).agg(sum)
-
-#plt.plot_date(bd.fecha[(bd.numero_de_asignacion=="A-0001") & (bd.entidad=="Abkatun-228" )& (bd.categoria_de_reserva=="PRB")],bd.aceite[(bd.numero_de_asignacion=="A-0001") & (bd.entidad=="Abkatun-228" )& (bd.categoria_de_reserva=="PRB")])
-
-
-bd=pd.read_csv("C:/Users/joser/Downloads/kumaza_dca.csv")
+    fig2, ax2 = plt.subplots(figsize=(15,8))  
+    plt.hist(resultados.Qi_hist, alpha=0.8, label='Historico',density=True)
+    plt.hist(resultados_desde.Qi_desde, alpha=0.5, label='First oil > ' +str(input_fecha),density=True)
+    ax2.set_xlabel('Gasto inicial Qi')
+    ax2.set_ylabel('Densidad')
+    plt.title('Distribucion del Qi historico vs First Oil >')
+    plt.legend(loc='upper right')
+    plt.show
     
+    return
     
-bd.fecha=[dateparser.parse(x,languages=['en'],
-                     date_formats=['%Y-%m-%d']) for x in bd.fecha]
-
-
-x=bd.pivot(index="fecha",columns="pozo",values="aceite_Mbd")
-x=x[x.index>= '2000-09-01']
-x.plot()
-plt.savefig(str(input_campo)+".png",dpi=300)
-
-y=bd.groupby("fecha").aceite_Mbd.sum()
-
-
-#welltype=pd.DataFrame({"q0":[pt.iloc[0,0],pt.iloc[1,0],pt.iloc[2,0]],
- #                      "b":[pt.iloc[0,3],pt.iloc[1,3],pt.iloc[2,3]],
-  #                     "di":[pt.iloc[0,4],pt.iloc[1,4],pt.iloc[2,4]],
-   #                    "tp":[10,20,5],
-    #                   "type":["exp","hyp","hyp"]},index=pt.index)
-
-pt=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
-
-fecha=pd.date_range(start="2020-01-31", periods=len_proy,freq="M").to_pydatetime().tolist()
-welltype=pd.DataFrame({"q0":[100,150,75],"a":[.05,.05,.1],"tp":[10,20,5],"b":[1,2,1],"type":["exp","hyp","hyp"]})
-costs=pd.DataFrame({"fixed":[300,300,100],"per_barrel":[4.5,1,2]})
-costs_base=4.5
-base=pd.Series(100,index=range(0,len_proy))
-
-drillorder=[0,1,0,2,2,1]
-
-def seleccion_curva(pt):
-    
-    curve=["harm"]*(pt.index.max()+1)
-    curve=pd.DataFrame(curve)
-    curve.loc[pt.iloc[:,-2]<pt.iloc[:,-1]]="hyp" 
-    curve=curve.rename(columns={0:"type"})
-    return curve 
-curve_type=seleccion_curva(pt)
-pt=pd.concat([pt,seleccion_curva(pt)],axis=1)
-pt=pd.concat([pt,pd.DataFrame({"tp":[10,10,10]})],axis=1)
-
-
-welltype=pt
-##función de producción
-def exp_curve(welltype,t):
-    if t-welltype.tp>=0:
-        x=welltype.Qi*np.exp(-1*welltype.dy_hyp*(t-welltype.tp))
-        return x
-    else:
-        x=0
-        return x
-    
-    
-def hyperbolic_curve(welltype,t):
-
-    if t-welltype.tp>=0:
-        if welltype.type=="harm":
-            x=welltype.Qi_harm/((1.0+welltype.di_harm*t))
-        else:
-            x=welltype.Qi_hyp/((1.0+welltype.b*welltype.di_hyp*t)**(1.0/welltype.b))   
-        return x
-    else: 
-        x=0
-        return x 
-
-
-def dec_curve(welltype,t):
-    
-    if welltype.type=="exp":
-        return exp_curve(welltype,t) 
-    else:
-        return hyperbolic_curve(welltype,t)
-
-def np_perf(perf,welltype,len_proy):
-        for i in perf:
-            Np=Np+[dec_curve(welltype,x-i) for x in Np.index]
-            Np[Np<0]=0
-         return(Np)
-        
-
-##funcion tren perforacion
-def np_func(welltype,drillorder,costs,costs_base,nequip,len_proy,cap,reservas,base):
-    
-    t=range(0,len_proy)
-    perf=[]
-    Np=base
-    costovar=pd.Series(0,index=range(0,len_proy))
-    
-    if any(Np==None):
-        Np=pd.Series(0,index=range(0,len_proy))    
-    else:
-        costovar=costs_base*Np
-        
-    capex=pd.Series(0,index=range(0,len_proy))
-    equipdisp=np.ones((nequip,len_proy),dtype=int)
-    nwells=len(drillorder)
-
-    w=0
-    ind_welltype=drillorder[w]
-    for j in range(0,len(t)):
-        
-        if w>=nwells:
-            break
-        ind_welltype=drillorder[w]
-        
-        if all(equipdisp[:,j]==0):
-               next 
-        while (any(equipdisp[:,j]==1) and len(perf)<nwells):
-            Np_trial=pd.Series(Np)
-            Np_trial=Np_trial+[dec_curve(welltype.loc[ind_welltype,:],x-j) for x in Np_trial.index]
-            Np_trial[Np_trial<0]=0
-            if Np_trial.max()>=cap:
-                break 
-            costovar_trial=(Np_trial-Np)*costs.loc[ind_welltype,:].per_barrel*[x.day for x in fecha]
-            costovar=costovar+costovar_trial
-            Np=pd.Series(Np_trial)
-            tp=welltype.iloc[ind_welltype,:].tp.astype(int)
-            equipdisp[np.min(np.where(equipdisp[:,j]==1)),j:j+tp]=0
-            perf.append(j)
-            w=w+1
-            
-            Np[np.cumsum(Np*30)>=reservas]=0
-            costovar[np.cumsum(Np*30)>=reservas]=0
-        
-    for z in perf:
-        i=0
-        capex_trial=pd.Series(0,index=range(0,len_proy))
-        capex_trial.iloc[z]=costs.fixed[drillorder[i]]
-        capex=capex+capex_trial
-        i=i+1
-            
-    return([Np,costovar,capex,perf])
-    
-Np=np_func(welltype,drillorder,costs,costs_base,nequip,len_proy,cap,reservas,base)
-
-df=pd.DataFrame({"fecha":fecha,"Np":Np[0],"Capex":Np[2],"Opex":Np[1]})
-#plt.plot(df.fecha,df.Np)
-plt.plot(df.fecha,df.Np)
-
-#plt.plot(Np.fecha,np.cumsum(Np.Np))
-
-pt=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv',
-               index_col=0)
-
-fecha=pd.date_range(start="2020-01-31", periods=len_proy,freq="M").to_pydatetime().tolist()
-
-
-costs=pd.DataFrame({"fixed":[300,300,100],"per_barrel":[4.5,1,2]})
-costs_base=4.5
-base=pd.Series(100,index=range(0,len_proy))
-
-drillorder=[0,1,0,2,2,1]
-
-welltype=pt
-
-#Modelo Económico Mensualisado
-
-#Tipo de cambio MXN/USD
-tipo_de_cambio = 20
-
-#Tipo de campo aceite o gas no asociado
-tipo_de_campo = "aceite"
-
-#Especificaciones del proyecto
-factor_de_conversion = 0
-costo_transporte_crudo = 0 #acondicionamiento y transporte aceite
-costo_transporte_gas = 0 #acondicionamiento y transporte gas
-gravedad_api = 18.60
-RGA_pc_b = 6.91
-area = 62.61
-factor_conversion_volumen = 0 
-
-#Regimen Fiscal
-regimen_fiscal = "licencia"
-
-#Indicadores cuota contractual para la etapa exploratoria
-duracion_etapa_exploratoria = 0
-
-#Indicadores del impuesto por la actividad de exploración y extracción de hidrocarburos
-area_exp = 0 #area contracual de fase de exploración
-area_ext = 62.61 #area contractual de fase de extraccion
-
-#Datos contractuales
-bono_a_la_firma = 0 
-regalia_adicional = .13 #En decimales el porcentaje de regalía adicional para los contratos de licencia
-
-tasa_de_descuento = .10 #En decimal tasa de descuento
-
-#Impuestos Corporativos
-tasa_isr = .30
-
-mpp = pd.read_excel(r"C:\Users\elias\OneDrive\Documentos\GitHub\Ainda\Proyecto Newton\04_economico/Prueba_Reporte Salida - (21_05_2019_17_36_18) A-0308- Campo Sihil - 2P.xlsx")
-fecha = mpp["Fecha"]
-
-mpp.index = fecha
-
-len_proy = len(mpp["Qo (bd)"])
-
-def headers(data):
-    for col in data.columns: 
-        print(col)
-
-#Da el acumulado de una serie de python
-def acumulado(x):
-    acum = pd.Series.sum(x)
-    print(acum)
-
-#Regresa el gasto equivalente
-def gastoequiv():
-    
-    if factor_de_conversion == 0:
-        gastoequi = (mpp["Qo (bd)"] + mpp["Qc (bd)"])*dias_de_mes/1000000
-    else:
-        gastoequi = (mpp["Qo (bd)"]+mpp["Qg (Mpcd)"]/factor_de_conversion+mpp["Qc (bd)"])*dias_de_mes/1000000
-    return(gastoequi)
-
-#Da la funcion para la matriz de precios
-def funprecios(dado, fecha, precio_crudoint = 53.57, precio_gasint = 4.11, precio_condensadoint = 0):
-    if dado == 1:
-        imputprecios = pd.read_excel(r"C:\Users\elias\OneDrive\Documentos\GitHub\Ainda\Proyecto Newton\04_economico/Perfil de Precios Campo Sihil.xlsx")
-        precio_crudo = imputprecios["Precio Aceite (USD/b)"]
-        precio_gas = imputprecios["Precio Gas (USD/Mpc)"]
-        precio_condensado = imputprecios["Precio Condensado (USD/b)"]
-        df = pd.concat([precio_crudo, precio_gas, precio_condensado], axis = 1)
-        df = df.rename(columns = {"Precio Aceite (USD/b)" : "crudo", 
-                              "Precio Gas (USD/Mpc)":"gas",
-                              "Precio Condensado (USD/b)":"condensado" }) 
-    else:
-        crudo = pd.Series(data = precio_crudoint, index = fecha)
-        gas = pd.Series(data = precio_gasint, index = fecha)
-        condensado = pd.Series(data = precio_condensadoint, index = fecha)
-        df = pd.concat([crudo, gas, condensado], axis = 1) 
-        df = df.rename(columns = {0 : "crudo", 
-                              1 : "gas",
-                              2 : "condensado" })
-    return(df)
-    
-#Calcula el abandono en pagos trimestrales
-    
-def calculoabandono(abandono_pozos,abandono_infra):
-    
-    abandono = abandono_pozos + abandono_infra
-    totalpozos = pd.Series.sum(abandono_pozos)
-    totalinfra = pd.Series.sum(abandono_infra)
-    costo_total = totalpozos + totalinfra
-    totalboed = pd.Series.sum(gasto_equivalente_boed)
-    vectoraux = pd.Series(0, index = fecha)
-    cond = (vectoraux.index.month == 12)
-    vectoraux[cond] = (gasto_equivalente_boed.rolling(12).sum())/totalboed
-    fecha_final = gasto_equivalente_boed.index[0]
-
-    gastoabandonoanual = vectoraux*costo_total
-    gastoabandonotrimestral = gastoabandonoanual/4
-    
-    for x in gastoabandonoanual.index:
-            vec = gastoabandonoanual
-            y = vec[x]/4
-            
-            gastoabandonotrimestral[x] = y
-            gastoabandonotrimestral[x - pd.DateOffset(month=2) + pd.offsets.MonthEnd()] = y
-            gastoabandonotrimestral[x - pd.DateOffset(month=5) + pd.offsets.MonthEnd()] = y
-            gastoabandonotrimestral[x - pd.DateOffset(month=8) + pd.offsets.MonthEnd()] = y
-
-    gastoabandonotrimestral.index = fecha
-    return(gastoabandonotrimestral)
-    
-
-def bonof(bono_a_la_firma, fecha):
-    vector = pd.Series(data = 0, index = fecha)
-    vector[0] = bono_a_la_firma
-    return vector
-
-def cuota_cont_explf(fecha, cce60 = 1396.09, cce = 3338.46):
-    
-    fin_etapa = fecha[60]
-    
-    vector = pd.Series(data = 0, index = fecha)
-    vector[vector.index <= fin_etapa] = cce60
-    vector[vector.index > fin_etapa] = cce
-    
-    vector_exp = pd.Series(data = 0, index = fecha)
-    vector_exp.index = fecha
-    vector_exp[vector_exp.index < fin_etapa_exploratoria] = 1
-    
-    vector_final = vector*vector_exp 
-    return vector_final
-
-def impuesto_actividadesEEf(fecha, cuota_fase_exp = 1768.5, cuota_fase_ext = 7073.8):
-    
-    vector =mpp["Qo (bd)"].sort_index(ascending = False).cumsum()
-    vector2 = vector.sort_index(ascending = True)
-    
-    ext = pd.Series(0, index = fecha)
-    
-    ext[vector2>0] = area_ext*cuota_fase_ext
-    ext[vector2 == 0] = 0
-    
-    exp = pd.Series(data = 0, index = fecha)
-    exp[exp.index < fin_etapa_exploratoria] = area_exp*cuota_fase_exp
-    
-    imp = pd.Series(0, index = fecha)
-    imp = ext + exp
-    imp = imp/tipo_de_cambio/1000000
-    
-    return(imp)
-    
-def reg_crudof(ingresos_crudo, fecha, An = 47.95, factor_de_regalia = 0.126):
-    pcrudo = precios["crudo"]
-    vectorreg = pd.Series(0, index = fecha)
-    vectorreg.index = fecha
-    
-    vectorreg[pcrudo<An] = .075
-    vectorreg[pcrudo>=An] = ((factor_de_regalia*pcrudo) + 1.5)/100
-    
-    pago = vectorreg*ingresos_crudo
-    return(pago)
-    
-def reg_gasf(ingresos_gas, fecha, factor_de_regalia = 99.9, Dn = 5, En = 5.49):
-    pgas = precios["gas"]
-    vectorreg = pd.Series(0, index = fecha)
-    
-    if tipo_de_campo == "gas_no_asociado":
-        vectorreg[pgas <= Dn] = 0
-        vectorreg[(pgas > Dn) & (pgas < En)] = (pgas - 5)*.605/pgas
-        vectorreg[pgas >= En] = pgas/factor_de_regalia
-    
-    else :
-        vectorreg = pgas/factor_de_regalia
-    
-    pago = vectorreg*ingresos_gas   
-        
-    return(pago)
-    
-def reg_condenf(ingresos_condensados, fecha, Gn = 60, factor_de_regalia = .126):
-    
-    pconden = precios["condensado"]
-    vectorreg = pd.Series(0, index = fecha)
-    
-    vectorreg[pconden < Gn] = .05
-    vectorreg[pconden >= Gn] = ((pconden*factor_de_regalia)-2.5)/100
-    
-    pago = vectorreg*ingresos_condensados
-    
-    return(pago)
-    
-    
-#Regalia adicional que se determinará en los Contratos considerando la aplicación de una
-#tasa al Valor Contractual de los Hidrocarburos. 
-
-def reg_adicf(regalia_adicional, fecha):    
-    
-    vectorreg = pd.Series(0, index = fecha)
-    
-    pago = regalia_adicional*ingresos
-    
-    return(pago)
-    
-def derechos_impuestos_petrof(regimen_fiscal):
-    
-    if regimen_fiscal == "licencia":
-        impuestos = bono + cuota_cont_exp + impuesto_actividadesEE + reg_crudo + reg_gas + reg_conden + reg_adic
-    
-    return(impuestos)
-
-def depreciacion_anual():
-    
-    DM_bono = pd.Series(84, index = fecha)
-    DM_explo = pd.Series(12, index = fecha)
-    DM_deli = pd.Series(12, index = fecha)
-    DM_desa = pd.Series(48, index = fecha)
-    DM_RMA = pd.Series(48, index = fecha)
-    DM_iny = pd.Series(48, index = fecha)
-    DM_infra = pd.Series(48, index = fecha)
-    DM_estudios = pd.Series(120, index = fecha)
-
-    depbono = cf.depreciation_sl(costs = bonof(bono_a_la_firma, fecha), life = DM_bono)
-    depexploratorios = cf.depreciation_sl(costs = pozos_exploratorios, life = DM_explo)
-    depdelimitadores = cf.depreciation_sl(costs = pozos_delimitadores, life = DM_deli)
-    depdesarrollo = cf.depreciation_sl(costs = pozos_desarrollo, life = DM_desa)
-    depRMA = cf.depreciation_sl(costs = pozos_RMA, life = DM_RMA)
-    depinyectores = cf.depreciation_sl(costs = pozos_inyectores, life = DM_iny)
-    depinfraestructura = cf.depreciation_sl(costs = capex_infra, life = DM_infra)
-    depexploracion = cf.depreciation_sl(costs = capex_estudios, life = DM_estudios)
-    
-    matrizdepranual = depbono + depexploratorios + depdelimitadores + depdesarrollo + depRMA + depinyectores + depinfraestructura + depexploracion
-    vectordepr = pd.Series(0.00000, index = fecha)
-    vectordepr = matrizdepranual["Depr"]
-    pd.Series.sum(vectordepr)
-    
-    #El paquete de cashflows no es preciso en todos los decimales
-    
-    return(vectordepr)
-        
-    
-def calculocf(i=0):
-    saldo_inicial_cf = pd.Series(0.0, index = fecha)
-    saldo_utilizado_cf = pd.Series(0.0, index = fecha)
-    saldo_vencido_cf = pd.Series(0.0, index = fecha)
-    saldo_adicional_cf = pd.Series(0.0, index = fecha)
-    saldo_final_cf = pd.Series(0.0, index = fecha)
-    utilbrutpos = pd.Series(0.0, index = fecha)
-    
-    utilbrutpos[utilidad_bruta > 0] = utilidad_bruta
-    saldo_adicional_cf[utilidad_bruta < 0] = -utilidad_bruta
-    saldo_legal = saldo_adicional_cf.rolling(121).sum()
-    saldo_legal = saldo_legal.fillna(0)    
-    for x in saldo_inicial_cf.index:
-        saldo_inicial_cf[x] = i
-        i=0
-        saldo_utilizado_cf[x] = 0-min(saldo_inicial_cf[x],utilbrutpos[x]) 
-        #if x > saldo_inicial_cf.index.values[119]:
-        if x > saldo_inicial_cf.index.values[120]:
-            saldo_vencido_cf[x] = 0-max(saldo_inicial_cf[x] + saldo_utilizado_cf[x] - saldo_legal[x],0)
-        else:
-             saldo_vencido_cf[x] = 0
-        saldo_final_cf[x] = saldo_inicial_cf[x] + saldo_adicional_cf[x] + saldo_utilizado_cf[x] + saldo_vencido_cf[x]
-        i = saldo_final_cf[x]
-        
-
-    return(saldo_utilizado_cf)
-
-def pagoisrf(utilidad_bruta):
-    
-    base_gravable_despuesCF = pd.Series(0.0, index = fecha)
-    beneficiofiscal = calculocf()
-    vectoraux = utilidad_bruta + calculocf()
-    base_gravable_despuesCF[vectoraux > 0] = vectoraux
-    
-    pagoisr = base_gravable_despuesCF*tasa_isr         
-    
-    return(pagoisr)
-    
-def descuentof():
-    dias_de_mes = fecha.days_in_month.values
-    diastotales = dias_de_mes.cumsum()
-    tasadiaria = ((1 + tasa_de_descuento)**(1/365))-1
-    vectormensual = pd.Series(0, index = fecha)
-    vectordetasa = pd.Series(tasadiaria, index = fecha)
-    descuentomensual  = 1/(1+vectordetasa)**diastotales
-
-    return(descuentomensual)
-
-
-#python imputs.py
-#python funciones.py
-    
-#Vectores auxiliares
-fecha = mpp.index
-dias_de_mes = fecha.days_in_month
-dias_de_mes.index = fecha
-len_proy = len(mpp["Qo (bd)"])
-fin_etapa_exploratoria = fecha[duracion_etapa_exploratoria]
-
-
-#Funcion precios si existe el imput de precios asignar 1
-precios = funprecios(1, fecha)
-
-#Indexar conforme a fechas
-mpp.index = fecha
-precios.index = fecha
-
-#Perfil de produccion
-gasto_aceite_MMb = mpp["Qo (bd)"]*dias_de_mes/1000000
-gasto_gas_MMMpcd = mpp["Qg (Mpcd)"]*dias_de_mes/1000000
-gasto_condensado_MMb = mpp["Qc (bd)"]*dias_de_mes/1000000
-gasto_equivalente_boed = gastoequiv()
-#Ingresos
-ingresos_crudo = (precios["crudo"]-costo_transporte_crudo)*gasto_aceite_MMb
-ingresos_gas = (precios["gas"]-costo_transporte_gas)*gasto_gas_MMMpcd
-ingresos_condensado = (precios["condensado"]-costo_transporte_gas)*gasto_condensado_MMb
-
-ingresos = ingresos_crudo + ingresos_gas + ingresos_condensado
-
-#Inversion
-pozos_exploratorios = mpp["CAPEX Pozos Exploratorios (MMUSD)"]
-pozos_delimitadores = mpp["CAPEX Pozos Delimitadores (MMUSD)"]
-pozos_desarrollo = mpp["CAPEX Pozos Desarrollo (MMUSD)"]
-pozos_RMA = mpp["CAPEX Pozos RMA (MMUSD)"]
-pozos_inyectores = mpp["CAPEX Pozos Inyectores (MMUSD)"]
-capex_infra = mpp["CAPEX Infraestructura (MMUSD)"]
-capex_estudios = mpp["CAPEX Exploración (Estudios/Sísmica) (MMUSD)"]
-
-capex = pozos_exploratorios + pozos_delimitadores + pozos_desarrollo + pozos_RMA  + pozos_inyectores + capex_infra + capex_estudios 
-
-#Operación y Mantemiento
-opex_fijo = mpp["OPEX Fijo (MMUSD)"]
-opex_var = mpp["OPEX Variable (MMUSD)"]
-opex_rme = mpp["OPEX RME (MMUSD)"]
-abandono_pozos = mpp["OPEX Abandono Pozos (MMUSD)"]
-abandono_infra = mpp["OPEX Abandono Infraestructura (MMUSD)"]
-
-opex = opex_fijo + opex_rme + opex_var + calculoabandono(abandono_pozos,abandono_infra) 
-
-
-#Derecho e impuestos petroleros
-bono = bonof(bono_a_la_firma, fecha)
-cuota_cont_exp = cuota_cont_explf(fecha)
-impuesto_actividadesEE = impuesto_actividadesEEf(fecha)
-reg_crudo = reg_crudof(ingresos_crudo, fecha)
-reg_gas = reg_gasf(ingresos_gas, fecha)
-reg_conden = reg_condenf(ingresos_condensado, fecha)
-reg_adic = reg_adicf(regalia_adicional, fecha)
-
-impuestospetro = derechos_impuestos_petrof(regimen_fiscal)
-
-#Impuestos Corporativos
-depreciacion = depreciacion_anual()
-ebitda = ingresos - opex
-ebit = ebitda - depreciacion
-utilidad_bruta = ebit - impuestospetro
-pagoisr= pagoisrf(utilidad_bruta)
-
-#Flujos
-feantes = ingresos - capex - opex
-fel = ingresos - capex - opex - impuestospetro - pagoisr
-
-#Flujos Descontados
-descuento = descuentof()
-feantes_descontado = feantes*descuento
-fel_descontado = fel*descuento
-
-#Indicadores Economicos
-vpn_proyecto = pd.Series.sum(feantes_descontado)
-vpn_cee = pd.Series.sum(fel_descontado)
-tir_proyecto = (1 + np.irr(fel))**12-1
-
-display (vpn_proyecto,vpn_cee,tir_proyecto)
-
