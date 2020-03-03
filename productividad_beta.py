@@ -802,34 +802,35 @@ def productividad(baja,media,alta):
     plt.title('Perfil de produccion para pozo tipo en el campo ' +str(input_campo))
     plt.legend(loc='upper right')
     plt.show()
+    
+    
+
+    def plot_Qi():
+        
+        fig1, ax1 = plt.subplots(figsize=(15,8))  
+        plt.hist(resultados[hidrocarburo], alpha=0.8, label='Qi Historico',density=True)
+        plt.hist(resultados_desde[hidrocarburo], alpha=0.5, label='First oil > '+str(input_fecha),density=True)
+        ax1.set_xlabel('Gasto Qo')
+        ax1.set_ylabel('Densidad')
+        plt.title('Distribucion del Qo historico vs First Oil >')
+        plt.legend(loc='upper right')
+        plt.show
+        
+        fig2, ax2 = plt.subplots(figsize=(15,8))  
+        plt.hist(resultados.Qi_hist, alpha=0.8, label='Historico',density=True)
+        plt.hist(resultados_desde.Qi_desde, alpha=0.5, label='First oil > ' +str(input_fecha),density=True)
+        ax2.set_xlabel('Gasto inicial Qi')
+        ax2.set_ylabel('Densidad')
+        plt.title('Distribucion del Qi historico vs First Oil >')
+        plt.legend(loc='upper right')
+        plt.show
+    
+        return
 
     toc=timeit.default_timer()
     tac= toc - tic #elapsed time in seconds
     
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
-    
-    return
-
-
-def plot_Qi():
-    
-    fig1, ax1 = plt.subplots(figsize=(15,8))  
-    plt.hist(resultados[hidrocarburo], alpha=0.8, label='Qi Historico',density=True)
-    plt.hist(resultados_desde[hidrocarburo], alpha=0.5, label='First oil > '+str(input_fecha),density=True)
-    ax1.set_xlabel('Gasto Qo')
-    ax1.set_ylabel('Densidad')
-    plt.title('Distribucion del Qo historico vs First Oil >')
-    plt.legend(loc='upper right')
-    plt.show
-    
-    fig2, ax2 = plt.subplots(figsize=(15,8))  
-    plt.hist(resultados.Qi_hist, alpha=0.8, label='Historico',density=True)
-    plt.hist(resultados_desde.Qi_desde, alpha=0.5, label='First oil > ' +str(input_fecha),density=True)
-    ax2.set_xlabel('Gasto inicial Qi')
-    ax2.set_ylabel('Densidad')
-    plt.title('Distribucion del Qi historico vs First Oil >')
-    plt.legend(loc='upper right')
-    plt.show
     
     return
     
