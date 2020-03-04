@@ -320,14 +320,14 @@ def productividad():
 
     def analisis_dca():
         
-        global resultados, gasto, prod_base, Q_base, G_base, C_base, resultados_desde
-        global Qi, df5, hidrocarburo, gas, condensado
+        global resultados, resultados_desde
+        global gasto, prod_base, Q_base, G_base, C_base
+        global Qi, hidrocarburo, gas, condensado
         global unique_well_list
         
         resultados=pd.DataFrame()
         gasto=pd.DataFrame()
         Qi=pd.DataFrame()
-        df5=pd.DataFrame()
         prod_base=pd.DataFrame()
         resultados_desde=pd.DataFrame()
         
@@ -490,8 +490,6 @@ def productividad():
                  popt_hyp_c[0],
                  popt_hyp_c[1],
                  popt_hyp_c[2]]]
-            
-            df5=pd.DataFrame(Qi)
     
             #Plot del Análisis de Declinación de Curvas (DCA)
             #Declare the x- and y- variables that we want to plot against each other
@@ -506,7 +504,7 @@ def productividad():
                 
             #Resultados de DCA
             resultados=resultados.append(serie_produccion,sort=False)
-            gasto=gasto.append(df5,sort=False)
+            gasto=gasto.append(Qi,sort=True)
             prod_base=prod_base.append(seleccion_base)
             
             resultados_desde=resultados_desde.append(serie_desde)
@@ -693,7 +691,7 @@ def productividad():
           #  'd_media harm del Pozo Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
       
     distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),len(tipo2),len(tipo3)]},
-                              index=['tipo1','tipo2','tipo3'])
+                              index=['BAJA','MEDIA','ALTA'])
     
 
 #########################  GRAFICAS DE RESULTADOS   ##################### 
@@ -761,14 +759,18 @@ def productividad():
     labels = 'Baja', 'Media', 'Alta'
     explode = (0.1, 0.1, 0.1) 
     fig3, ax3 = plt.subplots(figsize=(15,8))
-    ax3.pie(distribucion, explode=explode, labels=labels, autopct='%1.1f%%',shadow=True, startangle=90)
+    ax3.pie(distribucion, 
+            explode=explode, 
+            labels=distribucion.numero_pozos, 
+            autopct='%1.1f%%',
+            shadow=True, 
+            startangle=90)
     ax3.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
     plt.show()
     
-    
-    
+    #Grafica de barras por tipo de pozo
     fig20,ax20=plt.subplots(figsize=(15,9))
-    ax3.bar(distribucion.index,distribucion.numero_pozos)
+    ax20.bar(distribucion.index,distribucion.numero_pozos)
     plt.show()
     
     #Dispersion del gasto inicial Qi
