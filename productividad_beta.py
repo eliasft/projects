@@ -110,7 +110,7 @@ def productividad():
     #input de campo de analisis
     def campo_analisis():
         
-        global input_campo, input_hidrocarburo
+        global input_campo, input_hidrocarburo, input_fecha
         global campo
         global len_proy
         global nequip
@@ -119,15 +119,20 @@ def productividad():
         global num_pozos
         global pozos_tipo1,pozos_tipo2,pozos_tipo3
         global regimen_fiscal, regalia_adicional, region_fiscal
-        global hidrocarburo, input_fecha
+        #global hidrocarburo
+
     
         #Input de campo
-        input_campo = input("Nombre de campo: ")
+        input_campo = str(input("Nombre de campo: "))
         
-        input_hidrocarburo=input("Hidrocarburo de analisis: ")
-        hidrocarburo=str(input_hidrocarburo)
         
-        input_fecha=input("Fecha de inicio de análisis (yyyy-mm-dd): ")
+        #input_hidrocarburo=input("Hidrocarburo de analisis: ")
+        #hidrocarburo=str(input_hidrocarburo)
+        
+        input_fecha=input("Tomar muestra desde fecha (yyyy-mm-dd): ")
+        
+        if input_fecha == str(''):
+            input_fecha='2000-01-01'
         
         #duracion=int(input('Duracion del contrato (años): '))
         #nequip=input('Numero de equipos: ')
@@ -167,7 +172,7 @@ def productividad():
         pozos_tipo2=np.round(num_pozos*media,0)
         pozos_tipo3=num_pozos-(pozos_tipo1+pozos_tipo2)
 
-        seleccion=mx_bd.pozo.str.contains(str(input_campo))
+        seleccion=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
         campo=mx_bd.loc[seleccion]
 
         unique_well_list=pd.unique(campo['pozo'])
@@ -177,7 +182,7 @@ def productividad():
         #Generacion de archivo de resultados
         #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
-        return campo, len_proy, nequip, cap, reservas, num_pozos
+        return len_proy, nequip, cap, reservas, num_pozos
     
 
 ########      FUNCIONES PARA EL ANALISIS DE DECLINACION DE POZOS      ####### 
@@ -314,14 +319,13 @@ def productividad():
     def analisis_dca():
         
         global resultados, gasto, prod_base, Q_base, G_base, C_base, resultados_desde
-        global Qi,df5
+        global Qi, df5, hidrocarburo, gas, condensado
         
         resultados=pd.DataFrame()
         gasto=pd.DataFrame()
-        #Qi=pd.DataFrame()
+        Qi=pd.DataFrame()
         df5=pd.DataFrame()
         prod_base=pd.DataFrame()
-        
         resultados_desde=pd.DataFrame()
         
         #Entrada de campo de análisis
@@ -331,13 +335,21 @@ def productividad():
         #Limpieza de datos y formato de fecha
         data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'])
         
-        #hidrocarburo de análisis
-        hydrocarbon=hidrocarburo
-        gas='gas_asociado_MMpcd'
+        #Hidrocarburos de análisis
+        if data_pozos.aceite_Mbd.sum() > data_pozos.gas_no_asociado_MMpcd.sum():
+            
+            hidrocarburo='aceite_Mbd'
+            gas='gas_asociado_MMpcd'
+            
+        else:
+            
+            hidrocarburo='gas_no_asociado_MMpcd'
+            gas='gas_no_asociado_MMpcd'
+        
         condensado='condensado_Mbd'
         
         #Remove all rows with null values in the desired time series column
-        data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hydrocarbon)
+        data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hidrocarburo)
         
         #Get a list of unique wells to loop through
         unique_well_list=pd.unique(list(data_pozos.pozo))
@@ -349,9 +361,8 @@ def productividad():
         data_pozos['days_online']=generate_time_delta_column(data_pozos, time_column='fecha', 
                       date_first_online_column='first_oil')
         
-        #Pull data that came online between an specified range
+        #Generacion de dataframes por rangos de fechas de análisis
         data_pozos_range=data_pozos[(data_pozos.fecha>='1900-01-01') & (data_pozos.fecha<='2019-12-01')]
-        
         pozos_desde=data_pozos[(data_pozos.first_oil>=input_fecha) & (data_pozos.first_oil<='2019-12-01')]
         
         #Loop para realizar el DCA en cada pozo del campo
@@ -362,12 +373,13 @@ def productividad():
             serie_produccion=serie_produccion.set_index('pozo')
             
             serie_desde=pozos_desde[pozos_desde.pozo==pozo]
+            serie_desde=serie_desde.set_index('pozo')
             
             #Calculo de declinacion porcentual
             serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
             
             #Cálculo de la máxima producción inicial
-            qi=get_max_initial_production(serie_produccion, 500, hydrocarbon, 'fecha')
+            qi=get_max_initial_production(serie_produccion, 500, hidrocarburo, 'fecha')
             qi_g=get_max_initial_production(serie_produccion, 500, gas, 'fecha')
             qi_c=get_max_initial_production(serie_produccion, 500, condensado, 'fecha')
 
@@ -377,7 +389,7 @@ def productividad():
             if qi_c == 0:
                 qi_c = 0.00000000000000000000000000000000000000000001
                 
-            qi_desde=get_max_initial_production(serie_desde, 500, hydrocarbon, 'fecha')
+            qi_desde=get_max_initial_production(serie_desde, 500, hidrocarburo, 'fecha')
             qi_g_desde=get_max_initial_production(serie_desde, 500, gas, 'fecha')
             qi_c_desde=get_max_initial_production(serie_desde, 500, condensado, 'fecha')
 
@@ -401,24 +413,24 @@ def productividad():
     
             #Ajuste Exponencial
             popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'], 
-                                        serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
+                                        serie_produccion[hidrocarburo],bounds=(0, [qi,10]))
             #print('Exponential Fit Curve-fitted Variables: qi='+str(popt_exp[0])+', di='+str(popt_exp[1]))
 
             #Ajuste Hiperbolico
             popt_hyp, pcov_hyp=curve_fit(hiperbolica, serie_produccion['mes'], 
-                                         serie_produccion[hydrocarbon],bounds=(0, [qi,1,50]))
+                                         serie_produccion[hidrocarburo],bounds=(0, [qi,1,10]))
             
             popt_hyp_g, pcov_hyp_g=curve_fit(hiperbolica, serie_produccion['mes'], 
                                          serie_produccion[gas],bounds=(0, [qi_g,1,50]))
             
             popt_hyp_c, pcov_hyp_c=curve_fit(hiperbolica, serie_produccion['mes'], 
-                                         serie_produccion[condensado],bounds=(0.0, [qi_c,1,50]))
+                                         serie_produccion[condensado],bounds=(0.0, [qi_c,1,10]))
             
             #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
            
             #Ajuste Harmonico
             popt_harm, pcov_harm=curve_fit(harmonica, serie_produccion['mes'], 
-                                         serie_produccion[hydrocarbon],bounds=(0, [qi,50]))
+                                         serie_produccion[hidrocarburo],bounds=(0, [qi,50]))
             
             #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
     
@@ -480,11 +492,11 @@ def productividad():
     
             #Plot del Análisis de Declinación de Curvas (DCA)
             #Declare the x- and y- variables that we want to plot against each other
-            y_variables=[hydrocarbon,'harmonica','hiperbolica']
+            y_variables=[hidrocarburo,'harmonica','hiperbolica']
             x_variable='mes'
             
             #Create the plot title
-            plot_title=hydrocarbon+' for '+str(pozo)
+            plot_title=hidrocarburo+' for '+str(pozo)
             
             #Plot the data to visualize the equation fit
             #plot_actual_vs_predicted_by_equations(serie_produccion, x_variable, y_variables, plot_title)
@@ -533,7 +545,7 @@ def productividad():
         #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
         #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
                 
-        return resultados, gasto, Q_base, G_base, C_base, resultados_desde
+        return
         
     analisis_dca()
     
@@ -719,24 +731,28 @@ def productividad():
     plt.legend(loc='upper right')
     
     #Distribucion del gasto historico vs pronosticado
-    fig2, ax2 = plt.subplots(figsize=(15,8))  
-    plt.hist(resultados[hidrocarburo], alpha=0.4, label='Qo historico',density=True)
-    plt.hist(resultados.hiperbolica, alpha=0.5, label='Hyperbolic Predicted',density=True)#,cumulative=True)
-    plt.hist(resultados.harmonica, alpha=0.5, label='Harmonic Predicted',density=True)
-    #plt.hist(resultados.exponencial, alpha=0.5, label='Exponential Predicted',density=True)
+    fig2, ax2 = plt.subplots(figsize=(15,8))
+    plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',density=True)
+    plt.hist(resultados.hiperbolica, alpha=0.3, label='Hyperbolic Predicted',density=True)#,cumulative=True)
+    plt.hist(resultados.harmonica, alpha=0.3, label='Harmonic Predicted',density=True)
+    plt.hist(resultados.exponencial, alpha=0.3, label='Exponential Predicted',density=True)
     ax2.set_xlabel('Gasto Qo')
     ax2.set_ylabel('Densidad')
-    plt.title('ACEITE - Qo historico vs Pronosticado ' +str(input_campo))
+    plt.title(str(hidrocarburo) +' Qo historico vs Pronosticado ' +str(input_campo))
     plt.legend(loc='upper right')
     
     #Distribucion del gasto historico vs pronosticado
-    fig15, ax15 = plt.subplots(figsize=(15,8))  
-    plt.hist(resultados['gas_asociado_MMpcd'], alpha=0.5, label='Qg historico',density=True)
-    plt.hist(resultados.gas, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
-    ax15.set_xlabel('Gasto Qg')
-    ax15.set_ylabel('Densidad')
-    plt.title('GAS - Qg histórico vs Pronosticado ' +str(input_campo))
-    plt.legend(loc='upper right')
+    
+    if hidrocarburo == 'aceite_Mbd':
+        
+        fig15, ax15 = plt.subplots(figsize=(15,8))  
+        plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qg historico',density=True)
+        plt.hist(resultados.gas, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
+        ax15.set_xlabel('Gasto Qg')
+        ax15.set_ylabel('Densidad')
+        plt.title(' Qg histórico vs Pronosticado ' +str(input_campo))
+        plt.legend(loc='upper right')
+        plt.show()
     
     #Pie chart de distribucion de Pozos Tipo 
     labels = 'Baja', 'Media', 'Alta'
@@ -748,11 +764,12 @@ def productividad():
     
     #Dispersion del gasto inicial Qi
     fig4, ax4 = plt.subplots(figsize=(15,8))  
-    ax4.scatter(tipo1.Qi_hist,tipo1.pozo,color='Red',label='Tipo1-BAJA')
-    ax4.scatter(tipo2.Qi_hist,tipo2.pozo,color='Blue',label='Tipo2-MEDIA')
-    ax4.scatter(tipo3.Qi_hist,tipo3.pozo,color='Green',label='Tipo3-ALTA')
+    ax4.scatter(tipo1.pozo,tipo1.Qi_hist,color='Red',label='Tipo1-BAJA')
+    ax4.scatter(tipo2.pozo,tipo2.Qi_hist,color='Blue',label='Tipo2-MEDIA')
+    ax4.scatter(tipo3.pozo,tipo3.Qi_hist,color='Green',label='Tipo3-ALTA')
     ax4.set_xlabel('Gasto inicial Qi')
     ax4.set_ylabel('Pozo')
+    ax4.set_xticklabels(tipo3.pozo,rotation=90)
     plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' por pozo')
     plt.legend(loc='upper right')
     plt.show()
@@ -768,15 +785,6 @@ def productividad():
     plt.legend(loc='upper right')
     plt.show()
     
-    fig10, ax10 = plt.subplots(figsize=(15,8)) 
-    ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='Tipo1-BAJA')
-    ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='Tipo2-MEDIA')
-    ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='Tipo3-ALTA')
-    ax10.set_xlabel('First oil')
-    ax10.set_ylabel('Gasto inicial Qi')
-    plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi')
-    plt.legend(loc='upper right')
-    plt.show()
     
     #Dispersion del gasto inicial Qi vs Trayectoria
     fig8, ax8 = plt.subplots(figsize=(15,8))
@@ -797,12 +805,22 @@ def productividad():
     plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
     plt.show()
     
+    fig10, ax10 = plt.subplots(figsize=(15,8)) 
+    ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='Tipo1-BAJA')
+    ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='Tipo2-MEDIA')
+    ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='Tipo3-ALTA')
+    ax10.set_xlabel('First oil')
+    ax10.set_ylabel('Gasto inicial Qi')
+    plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi')
+    plt.legend(loc='upper right')
+    plt.show()
+    
     fig9, ax9 = plt.subplots(figsize=(15,8))
     #prod_base2=prod_base.groupby(by='pozo')
     ax9.scatter(tipo1.mes,tipo1.Qi_hist,color='Red',label='Tipo1-BAJA')
     ax9.scatter(tipo2.mes,tipo2.Qi_hist,color='Blue',label='Tipo2-MEDIA')
     ax9.scatter(tipo3.mes,tipo3.Qi_hist,color='Green',label='Tipo3-ALTA')
-    plt.title('Meses Produciendo vs Qi Aceite ' +str(hidrocarburo))
+    plt.title('Meses Produciendo vs Qi ' +str(hidrocarburo))
     ax9.set_xlabel('Meses Produciendo')
     ax9.set_ylabel('Qi Aceite')
     plt.show()
@@ -833,22 +851,22 @@ def productividad():
     def plot_Qi(resultados):
 
         fig1, ax1 = plt.subplots(figsize=(15,8))  
-        plt.hist(resultados[hidrocarburo], alpha=0.8, label='Historico since ' +str(resultados.fecha.min()),density=True)
-        plt.hist(resultados_desde[hidrocarburo], alpha=0.5, label='First oil > '+str(input_fecha),density=True)
+        plt.hist(resultados[hidrocarburo], alpha=0.6, label='Qo since ' +str(resultados.fecha.min()),density=True)
+        plt.hist(resultados_desde[hidrocarburo], alpha=0.3, label='Qo since First oil > '+str(input_fecha),density=True)
         ax1.set_xlabel('Gasto Qo')
         ax1.set_ylabel('Densidad')
-        plt.title('Qo historico vs Qo-First Oil >'+str(input_fecha)+' en el campo '+str(input_campo))
+        plt.title('Qo historico vs Qo since First Oil en el campo '+str(input_campo))
         plt.legend(loc='upper right')
         plt.show
 
         fig2, ax2 = plt.subplots(figsize=(15,8))  
-        plt.hist(resultados.Qi_hist, alpha=0.8, label='Historico since ' +str(resultados.fecha.min()),density=True)
-        plt.hist(resultados_desde.Qi_desde, alpha=0.5, label='First oil > ' +str(input_fecha),density=True)
+        plt.hist(resultados.Qi_hist, alpha=0.6, label='Qi since ' +str(resultados.fecha.min()),density=True)
+        plt.hist(resultados_desde.Qi_desde, alpha=0.3, label='Qi since First oil > ' +str(input_fecha),density=True)
         ax2.set_xlabel('Gasto inicial Qi')
         ax2.set_ylabel('Densidad')
-        plt.title('Qi historico vs Qi-First Oil >'+str(input_fecha) +' en el campo '+str(input_campo))
+        plt.title('Qi historico vs Qi since First Oil en el campo '+str(input_campo))
         plt.legend(loc='upper right')
-        plt.show
+        plt.show()
         
         return
 
