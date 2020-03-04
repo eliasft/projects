@@ -55,7 +55,7 @@ def carga_bd():
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_bd.csv',
+    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_bd.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
@@ -182,7 +182,7 @@ def productividad():
         display('Número de pozos en ' +str(input_campo)+': '+str(len(unique_well_list)))
 
         #Generacion de archivo de resultados
-        #campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #campo.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
         return len_proy, nequip, cap, reservas, num_pozos
     
@@ -543,8 +543,8 @@ def productividad():
         G_base=prod_base.gas_asociado_MMpcd.sum()
         C_base=prod_base.condensado_Mbd.sum()
         
-        #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-        #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
+        #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+        #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
                 
         return
         
@@ -671,11 +671,11 @@ def productividad():
          'di_condensado': [tipo1.di_condensado.mean(), tipo2.di_condensado.mean(),tipo3.di_condensado.mean()]}
     
     ajuste = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
-    ajuste.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/parametros.csv')
+    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
         
-    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
     perfil=perfil.set_index('mes')
-    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfiles_tipo.csv')
+    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfiles_tipo.csv')
     
     #display('Qi50 del campo:  '+str(gasto.Qi_hist.quantile(.5)),
      #       'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
