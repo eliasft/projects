@@ -1,4 +1,4 @@
-import pandas as pd
+﻿import pandas as pd
 import numpy as np
 from datetime import datetime
 import dateparser 
@@ -117,7 +117,7 @@ def productividad():
         global len_proy
         global nequip
         global cap
-        global reservas
+        global reservas, info_reservas
         global num_pozos
         global pozos_tipo1,pozos_tipo2,pozos_tipo3
         global regimen_fiscal, regalia_adicional, region_fiscal
@@ -936,3 +936,4 @@ def productividad():
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
     return
+
