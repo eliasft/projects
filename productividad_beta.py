@@ -28,7 +28,7 @@ pd.options.display.float_format = '{:,.2f}'.format
 
 warnings.filterwarnings("ignore")
 
-plt.rcParams.update({'font.size': 18})
+plt.rcParams.update({'font.size': 20})
 
 #########################################                            ########################################
 
@@ -160,8 +160,9 @@ def productividad():
         
         #Subset de la BD con el campo de analisis
 
-        seleccion_campo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
-        pozos=mx_bd.loc[seleccion_campo]
+        seleccion_pozo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
+        seleccion_campo=mx_bd.campo.str.contains(pat=input_campo,regex=True)
+        pozos=mx_bd.loc[seleccion_campo & seleccion_pozo]
         
         seleccion_reservas=mx_reservas.NOMBRE.str.contains(pat=input_campo,regex=True)
         info_reservas=mx_reservas.loc[seleccion_reservas]
@@ -171,7 +172,7 @@ def productividad():
         display('Número de pozos en ' +str(input_campo)+': '+str(len(lista_pozos)))
 
         #Generacion de archivo de resultados
-        #campo.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #pozos.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
         
         
         #INPUTS DE VARIABLES DE EVALUACION
@@ -505,7 +506,7 @@ def productividad():
                  perr_exp[1],
                  hidrocarburo,
                  serie_produccion.loc[:,'mes'].max(),
-                 float(seleccion_base.profundidad_vertical),
+                 float(seleccion_base.get_value(pozo,'profundidad_vertical')),
                  str(seleccion_base.get_value(pozo,'trayectoria')),
                  seleccion_base.get_value(pozo,'first_oil'),
                  popt_hyp_g[0],
@@ -513,7 +514,8 @@ def productividad():
                  popt_hyp_g[2],
                  popt_hyp_c[0],
                  popt_hyp_c[1],
-                 popt_hyp_c[2]]]
+                 popt_hyp_c[2],
+                 str(seleccion_base.get_value(pozo,'estado actual'))]]
     
             #Plot del Análisis de Declinación de Curvas (DCA)
             #Declare the x- and y- variables that we want to plot against each other
@@ -559,7 +561,8 @@ def productividad():
                                    22:'di_gas',
                                    23:'Qi_condensado',
                                    24:'b_condensado',
-                                   25:'di_condensado'})
+                                   25:'di_condensado',
+                                   26:'estado_actual'})
         
         estadistica=resultados.describe()
         
@@ -568,9 +571,23 @@ def productividad():
         Cp=(resultados.condensado_Mbd.sum()*30)/1_000
         Wp=(resultados.agua_Mbd.sum()*30)/1_000
         
+        
+        if  info_reservas['VO CRUDO 1P (MMB)'].empty == True & info_reservas['VO GAS 1P (MMMPC)'].empty == True:
+            OOIP = float(0)
+            Fr_aceite = float(0)
+            OGIP = float(0)
+            Fr_gas = float(0) 
+
+        else:
+            OOIP = float(info_reservas['VO CRUDO 1P (MMB)'])
+            OGIP = float(info_reservas['VO GAS 1P (MMMPC)'])
+            Fr_aceite = float(Np/OOIP)
+            Fr_gas = float(Gp/OGIP)
+            
+        acumulados=pd.Series()
         acumulados=pd.Series(name=input_campo,
-                             index={'Np','Gp','Cp','Wp'},
-                             data=[Np, Gp, Cp, Wp])
+                             data=[Np, Gp, Cp, Wp, OOIP, Fr_aceite, OGIP, Fr_gas],
+                             index=('Np','Gp','Cp','Wp','OOIP','Fr_aceite', 'OGIP','Fr_gas'))
         
         Q_base=prod_base.aceite_Mbd.sum()
         G_base=prod_base[gas].sum()
@@ -580,7 +597,7 @@ def productividad():
         #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
                 
         return
-        
+            
     analisis_dca()
     
 #########################  POZOS TIPO - PRONOSTICO DE PRODUCCION Qo   ##################### 
@@ -596,6 +613,8 @@ def productividad():
     df['dias']=pd.DatetimeIndex(fechas).day
     df['periodo']=periodo
     
+    ###### Valores medio
+    
     q_baja=gasto.Qi_hist.quantile(baja)
     q_media=gasto.Qi_hist.quantile(media)
     q_alta=gasto.Qi_hist.quantile(alta)
@@ -607,7 +626,9 @@ def productividad():
     
     d=gasto.di_hyp.mean()
     #d=gasto.di_harm.mean()
-    b=gasto.b.mean()  
+    b=gasto.b.mean()
+    
+    ###### Subset de Pozos Tipo
 
     criterio1=(gasto['Qi_hist'] <= q_baja)
     tipo1=gasto.loc[criterio1]
@@ -896,8 +917,8 @@ def productividad():
     plt.show()
     
     fig14, ax14 = plt.subplots(figsize=(15,8))
-    pozos.groupby(by='pozo')
-    ax14.scatter(pozos['estado actual'],pozos.pozo)
+    #pozos.groupby(by='pozo')
+    ax14.scatter(gasto.estado_actual,gasto.pozo)
     plt.title('Estado Actual de los pozos en el campo ' +str(input_campo))
     ax14.set_xlabel('Estado Actual')
     ax14.set_ylabel('Pozo')
@@ -936,4 +957,3 @@ def productividad():
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
     return
-
