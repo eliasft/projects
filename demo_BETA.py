@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 import numpy as np
 from datetime import datetime
 import dateparser 
@@ -15,6 +15,8 @@ from scipy.optimize import minimize
 from datetime import datetime, timedelta,date
 %matplotlib inline
 
+import cashflows as cf
+
 import timeit
 import warnings
 
@@ -28,7 +30,7 @@ pd.options.display.float_format = '{:,.2f}'.format
 
 warnings.filterwarnings("ignore")
 
-plt.rcParams.update({'font.size': 20})
+plt.rcParams.update({'font.size': 18})
 
 #########################################                            ########################################
 
@@ -139,22 +141,21 @@ def productividad():
         #INPUTS ECONOMICOS
         
         #Regimen Fiscal especificar si es "licencia", "cpc" o "asignacion" 
-        #print("Régimen Fiscal:")
-        #regimen_fiscal = input("Régimen Fiscal: ") #"licencia"
-        #regimen_fiscal = str(regimen_fiscal)
-        #if regimen_fiscal not in ["licencia","cpc","asignacion"]:
-         #   raise SystemExit("Párametro Inválido")
+        regimen_fiscal = input("Régimen Fiscal: ") #"licencia"
+        regimen_fiscal = str(regimen_fiscal)
+        if regimen_fiscal not in ["licencia","cpc","asignacion"]:
+             raise SystemExit("Párametro Inválido")
 
 
-        #if regimen_fiscal == "licencia":
-         #   regalia_adicional = input("Regalía Adicional Decimales: ") #En decimales el porcentaje de regalía adicional para los contratos de licencia
-          #  regalia_adicional = float(regalia_adicional)
+        if regimen_fiscal == "licencia":
+            regalia_adicional = input("Regalía Adicional Decimales: ") #En decimales el porcentaje de regalía adicional para los contratos de licencia
+            regalia_adicional = float(regalia_adicional)
 
         #Region fiscal: aceite_terrestre, aguas_someras, aguas_profundas, gas, chicontepec 
-        #region_fiscal =  input("Región Fiscal: ") #"aceite_terrestre"   
-        #region_fiscal=str(region_fiscal)
-        #if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
-         #   raise SystemExit("Párametro Inválido")
+        region_fiscal =  input("Región Fiscal: ") #"aceite_terrestre"   
+        region_fiscal=str(region_fiscal)
+        if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
+            raise SystemExit("Párametro Inválido")
         
         
         #Subset de la BD con el campo de analisis
@@ -183,7 +184,7 @@ def productividad():
         #reservas=input('Reservas: ')
         
         len_proy=0
-        duracion=30
+        duracion=40
         len_proy=duracion*12
         num_pozos=6
         nequip=1
@@ -960,3 +961,812 @@ def productividad():
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
     return
+
+
+
+
+#########################################                            ########################################
+
+
+
+
+########################################          PERFORACION       #########################################
+
+
+
+
+########################################                            #########################################
+
+
+def perforacion():
+    
+    global produccion
+    
+    pt=ajuste.reset_index()
+
+    fecha=0
+    fecha=pd.date_range(start="2020-01-31", periods=len_proy,freq="M").to_pydatetime().tolist()
+    welltype=pd.DataFrame({"q0":[100,150,75],"a":[.05,.05,.1],"tp":[10,20,5],"b":[1,2,1],"type":["exp","hyp","hyp"]})
+
+    costs=pd.DataFrame({"fixed":[1_490,1_490,1_490],"per_barrel":[2.33,2.33,2.33]})
+    costs_base=2.33
+
+    base_aceite=pd.Series(Q_base,index=range(0,len_proy))
+    base_gas=pd.Series(G_base,index=range(0,len_proy))
+    base_condensado=pd.Series(C_base,index=range(0,len_proy))
+
+    drillorder=pd.Series(np.arange(0,num_pozos))
+
+    m=0
+
+    for m in range(0,num_pozos):
+
+        if m < pozos_tipo3:
+            drillorder[m]=2
+        else:
+            if (m >= pozos_tipo3) & (m < (pozos_tipo2+pozos_tipo3)):
+                drillorder[m]=1
+            else:
+                drillorder[m]=0
+
+    def seleccion_curva(pt):
+
+        curve=["harm"]*(pt.index.max()+1)
+        curve=pd.DataFrame(curve)
+        curve.loc[pt.iloc[:,-2]<pt.iloc[:,-1]]="hyp" 
+        curve=curve.rename(columns={0:"type"})
+
+        return curve 
+
+    curve_type=seleccion_curva(pt)
+    pt=pd.concat([pt,seleccion_curva(pt)],axis=1)
+    pt=pd.concat([pt,pd.DataFrame({"tp":[10,10,10]})],axis=1)
+
+
+    welltype=pt
+
+    m=0
+
+    for m in range(0,len_proy):
+
+        base_aceite[m]=Q_base/((1.0+welltype.b.mean()*welltype.di_hyp.mean()*m)**(1.0/welltype.b.mean()))   
+        base_gas[m]=G_base/((1.0+welltype.b_gas.mean()*welltype.di_gas.mean()*m)**(1.0/welltype.b_gas.mean()))
+        base_condensado[m]=C_base/((1.0+welltype.b_condensado.mean()*welltype.di_condensado.mean()*m)**(1.0/welltype.b_condensado.mean()))
+
+    #Funcion de Produccion
+    def exp_curve(welltype,t):
+        if t-welltype.tp>=0:
+            x=welltype.Qi*np.exp(-1*welltype.di_hyp*(t-welltype.tp))
+            return x
+        else:
+            x=0
+            return x
+
+    def exp_curve_gas(welltype,t):
+        if t-welltype.tp>=0:
+            x=welltype.Qi_gas*np.exp(-1*welltype.di_gas*(t-welltype.tp))
+            return x
+        else:
+            x=0
+            return x
+
+    def hyperbolic_curve(welltype,t):
+
+        if t-welltype.tp>=0:
+            if welltype.type=="harm":
+                x=welltype.Qi_harm/((1.0+welltype.di_harm*(t-welltype.tp)))
+            else:
+                x=welltype.Qi_hyp/((1.0+welltype.b*welltype.di_hyp*(t-welltype.tp))**(1.0/welltype.b))   
+            return x
+        else: 
+            x=0
+            return x 
+
+    def hyperbolic_curve_gas(welltype,t):
+
+        if t-welltype.tp>=0:
+            if welltype.type=="harm":
+                x=welltype.Qi_gas/((1.0+welltype.di_gas*(t-welltype.tp)))
+            else:
+                x=welltype.Qi_gas/((1.0+welltype.b_gas*welltype.di_gas*(t-welltype.tp))**(1.0/welltype.b_gas))   
+            return x
+        else: 
+            x=0
+            return x 
+
+    def hyperbolic_curve_condensado(welltype,t):
+
+        if t-welltype.tp>=0:
+            if welltype.type=="harm":
+                x=welltype.Qi_condensado/((1.0+welltype.di_condensado*(t-welltype.tp)))
+            else:
+                x=welltype.Qi_condensado/((1.0+welltype.b_condensado*welltype.di_condensado*(t-welltype.tp))**(1.0/welltype.b_condensado))   
+            return x
+        else: 
+            x=0
+            return x     
+
+    def dec_curve(welltype,t):
+        if welltype.type=="exp":
+            return exp_curve(welltype,t)
+        else:
+            return hyperbolic_curve(welltype,t)
+
+    def dec_curve_gas(welltype,t):
+        if welltype.type=="exp":
+            return exp_curve_gas(welltype,t)
+        else:
+            return hyperbolic_curve_gas(welltype,t)
+
+    def dec_curve_condensado(welltype,t):
+        if welltype.type=="exp":
+            return exp_curve_condensado(welltype,t)
+        else:
+            return hyperbolic_curve_condensado(welltype,t)
+
+
+    #Perfil de produccion
+    def np_perf(perf,welltype,len_proy):
+            for i in perf:
+                Np=Np+[dec_curve(welltype,x-i) for x in Np.index]
+                Np[Np<0]=0
+            return(Np)
+
+    #Funcion Tren de Perforacion
+    def np_func(welltype,drillorder,costs,costs_base,nequip,len_proy,cap,reservas_aceite,base_aceite,base_gas,base_condensado):
+
+        t=range(0,len_proy)
+        perf=[]
+
+        Np=base_aceite
+        Gp=base_gas
+        Cp=base_condensado
+
+        costovar=pd.Series(0,index=range(0,len_proy))
+
+        if any(Np==None):
+            Np=pd.Series(0,index=range(0,len_proy))    
+        else:
+            costovar=costs_base*Np
+
+        capex=pd.Series(0,index=range(0,len_proy))
+        equipdisp=np.ones((nequip,len_proy),dtype=int)
+        nwells=len(drillorder)
+
+        w=0
+
+        ind_welltype=drillorder[w]
+
+        for j in range(0,len(t)):
+
+            if w>=nwells:
+                break
+
+            ind_welltype=drillorder[w]
+
+            if all(equipdisp[:,j]==0):
+                next 
+            while (any(equipdisp[:,j]==1) and len(perf)<nwells):
+
+                Np_trial=pd.Series(Np)
+                Gp_trial=pd.Series(Gp)
+                Cp_trial=pd.Series(Cp)
+
+                Np_trial=Np_trial+[dec_curve(welltype.loc[ind_welltype,:],x-j) for x in Np_trial.index]
+                Np_trial[Np_trial<0]=0
+                
+                Gp_trial=Gp_trial+[dec_curve_gas(welltype.loc[ind_welltype,:],x-j) for x in Gp_trial.index]
+                Gp_trial[Gp_trial<0]=0
+
+                Cp_trial=Cp_trial+[dec_curve_condensado(welltype.loc[ind_welltype,:],x-j) for x in Cp_trial.index]
+                Cp_trial[Cp_trial<0]=0
+
+
+                if Np_trial.max()>=cap:
+                    break 
+
+                costovar_trial=(Np_trial-Np)*costs.loc[ind_welltype,:].per_barrel*[x.day for x in fecha]
+                costovar=costovar+costovar_trial
+
+                Np=pd.Series(Np_trial)
+                Gp=pd.Series(Gp_trial)
+                Cp=pd.Series(Cp_trial)
+
+                tp=welltype.iloc[ind_welltype,:].tp.astype(int)
+                equipdisp[np.min(np.where(equipdisp[:,j]==1)),j:j+tp]=0
+                perf.append(j)
+                w=w+1
+
+        Np[np.cumsum(Np*30/1000)>=reservas_aceite]=0
+        
+        costovar[np.cumsum(Np*30/1000)>=reservas_aceite]=0
+
+        #Gp[np.cumsum(Gp*30)>=reservas_aceite]=0
+
+        for z in perf:
+
+            i=0
+            capex_trial=pd.Series(0,index=range(0,len_proy))
+            capex_trial.iloc[z]=costs.fixed[drillorder[i]]
+            capex=capex+capex_trial
+            i=i+1
+
+        return([Np, Gp, Cp, capex, costovar, perf])
+
+    Np=np_func(welltype,drillorder,costs,costs_base,nequip,len_proy,cap,reservas_aceite,base_aceite,base_gas,base_condensado)
+
+  
+    produccion=pd.DataFrame({"fecha":fecha,
+                      "Qo": Np[0], 
+                      "Qg": Np[1], 
+                      "Qc": Np[2], 
+                      "Capex": Np[3],
+                      "Opex": Np[4],
+                      "Np": Np[0].cumsum(),
+                      "Gp": Np[1].cumsum(),
+                      "Cp": Np[2].cumsum()})
+
+    produccion=produccion.set_index('fecha')
+
+    produccion.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/produccion.csv')
+
+    #Grafica de Perfil de produccion
+    fig1, ax1 = plt.subplots(figsize=(15,8))    
+    ax1.plot(produccion.Qo,label='Qo',linestyle='solid',color='blue')
+    ax1.set_xlabel('Fecha')
+    ax1.set_ylabel('Qo')
+    plt.title('Pronostico de produccion para el campo ' +str(input_campo))
+    plt.legend(loc='upper right')
+    plt.show()
+    
+    display(produccion.describe())
+
+    return produccion
+
+
+#########################################                            ########################################                                                                
+
+
+########################################          ECONOMICO         #########################################
+
+
+
+########################################                            #########################################
+
+
+
+def economico(regimen_fiscal, regalia_adicional, region_fiscal):
+
+    #Modelo Económico Mensualisado
+    
+    #Leer MPP y perfil de precios
+    mpp = pd.read_csv(r"C:/Users/elias/Google Drive/python/csv/benchmark/archivo.csv",
+                      index_col=0,parse_dates=True)
+
+    fecha = pd.Series(mpp.index)
+
+    tipo_de_cambio = 20
+
+    #Tipo de campo_aceite o gas_no_asociado
+    tipo_de_campo = "aceite"
+
+    #Especificaciones del proyecto
+
+    factor_de_conversion = 0
+    costo_transporte_crudo = 0 #acondicionamiento y transporte aceite
+    costo_transporte_gas = 0 #acondicionamiento y transporte gas
+    gravedad_api = 18.60
+    RGA_pc_b = 6.91
+    area = 62.61
+    factor_conversion_volumen = 0 
+
+    #Indicadores cuota contractual para la etapa exploratoria
+    duracion_etapa_exploratoria = 0
+
+    #Indicadores del impuesto por la actividad de exploración y extracción de hidrocarburos
+    area_exp = 0 #area contracual de fase de exploración
+    area_ext = 62.61 #area contractual de fase de extraccion
+
+    #Datos contractuales
+    bono_a_la_firma = 0 
+    tasa_de_descuento = .10 #En decimal tasa de descuento
+
+    #Impuestos Corporativos
+    tasa_isr = .30
+
+    def headers(data):
+        for col in data.columns: 
+            print(col)
+
+    #Da el acumulado de una serie de python
+    def acumulado(x):    
+        acum = pd.Series(x).sum()
+        print(acum)
+
+
+    #Regresa el gasto equivalente
+    def gastoequiv():
+
+        if factor_de_conversion == 0:
+            gastoequi = (produccion.Qo + produccion.Qc)*dias_de_mes/1_000
+        else:
+            gastoequi = ((produccion.Qo+(produccion.Qg/factor_de_conversion)+produccion.Qc)*dias_de_mes)/1_000
+        return(gastoequi)
+
+    #Da la funcion para la matriz de precios
+    def funprecios(dado, fecha, precio_crudoint = 53.57, precio_gasint = 4.11, precio_condensadoint = 0):
+        if dado == 1:
+            imputprecios = pd.read_csv(r"C:/Users/elias/Google Drive/python/csv/benchmark/perfil_precios.csv")
+            precio_crudo = imputprecios["Precio Aceite (USD/b)"]
+            precio_gas = imputprecios["Precio Gas (USD/Mpc)"]
+            precio_condensado = imputprecios["Precio Condensado (USD/b)"]
+            df = pd.concat([precio_crudo, precio_gas, precio_condensado], axis = 1)
+            df = df.rename(columns = {"Precio Aceite (USD/b)" : "crudo", 
+                                  "Precio Gas (USD/Mpc)":"gas",
+                                  "Precio Condensado (USD/b)":"condensado" }) 
+        else:
+            crudo = pd.Series(data = precio_crudoint, index = fecha)
+            gas = pd.Series(data = precio_gasint, index = fecha)
+            condensado = pd.Series(data = precio_condensadoint, index = fecha)
+            df = pd.concat([crudo, gas, condensado], axis = 1) 
+            df = df.rename(columns = {0 : "crudo", 
+                                  1 : "gas",
+                                  2 : "condensado" })
+        return(df)
+
+    #Calcula el abandono en pagos trimestrales
+
+    def calculoabandono(abandono_pozos,abandono_infra):
+
+        abandono = abandono_pozos + abandono_infra
+        if regimen_fiscal == "asignacion":
+            gastoabandonotrimestral = abandono
+
+        else:
+            totalpozos = pd.Series.sum(abandono_pozos)
+            totalinfra = pd.Series.sum(abandono_infra)
+            costo_total = totalpozos + totalinfra
+            totalboed = pd.Series.sum(gasto_equivalente_boed)
+            vectoraux = pd.Series(0, index = fecha)
+            vectoraux[vectoraux.index.month == 12] = (gasto_equivalente_boed.rolling(12).sum())/totalboed
+            fecha_final = gasto_equivalente_boed.index[0]
+
+            gastoabandonoanual = vectoraux*costo_total
+            gastoabandonotrimestral = gastoabandonoanual/4
+
+            for x in gastoabandonoanual.index:
+                    vec = gastoabandonoanual
+                    y = vec[x]/4
+
+                    gastoabandonotrimestral[x] = y
+                    gastoabandonotrimestral[x - pd.DateOffset(month=2) + pd.offsets.MonthEnd()] = y
+                    gastoabandonotrimestral[x - pd.DateOffset(month=5) + pd.offsets.MonthEnd()] = y
+                    gastoabandonotrimestral[x - pd.DateOffset(month=8) + pd.offsets.MonthEnd()] = y
+
+            gastoabandonotrimestral.index = fecha
+        
+            return(gastoabandonotrimestral)
+
+
+    def bonof(bono_a_la_firma, fecha):
+        vector = pd.Series(data = 0, index = fecha)
+        vector[0] = bono_a_la_firma
+        return vector
+
+    def cuota_cont_explf(fecha, cce60 = 1396.09, cce = 3338.46):
+
+        fin_etapa = fecha[60]
+
+        vector = pd.Series(data = 0, index = fecha)
+        vector[vector.index <= fin_etapa] = cce60
+        vector[vector.index > fin_etapa] = cce
+
+        vector_exp = pd.Series(data = 0, index = fecha)
+        vector_exp.index = fecha
+        vector_exp[vector_exp.index < fin_etapa_exploratoria] = 1
+
+        vector_final = vector*vector_exp 
+        return vector_final
+
+    def impuesto_actividadesEEf(fecha, cuota_fase_exp = 1768.5, cuota_fase_ext = 7073.8):
+
+        vector =produccion.Qo.sort_index(ascending = False).cumsum()
+        vector2 = vector.sort_index(ascending = True)
+
+        ext = pd.Series(0, index = fecha)
+
+        ext[vector2>0] = area_ext*cuota_fase_ext
+        ext[vector2 == 0] = 0
+
+        exp = pd.Series(data = 0, index = fecha)
+        exp[exp.index < fin_etapa_exploratoria] = area_exp*cuota_fase_exp
+
+        imp = pd.Series(0, index = fecha)
+        imp = ext + exp
+        imp = imp/tipo_de_cambio/1_000_000
+
+        return(imp)
+
+    def reg_crudof(ingresos_crudo, fecha, An = 47.95, factor_de_regalia = 0.126):
+        pcrudo = precios["crudo"]
+        vectorreg = pd.Series(0, index = fecha)
+        vectorreg.index = fecha
+
+        vectorreg[pcrudo<An] = .075
+        vectorreg[pcrudo>=An] = ((factor_de_regalia*pcrudo) + 1.5)/100
+
+        pago = vectorreg*ingresos_crudo
+        return(pago)
+
+    def reg_gasf(ingresos_gas, fecha, factor_de_regalia = 99.9, Dn = 5, En = 5.49):
+        pgas = precios["gas"]
+        vectorreg = pd.Series(0, index = fecha)
+
+        if tipo_de_campo == "gas_no_asociado":
+            vectorreg[pgas <= Dn] = 0
+            vectorreg[(pgas > Dn) & (pgas < En)] = (pgas - 5)*.605/pgas
+            vectorreg[pgas >= En] = pgas/factor_de_regalia
+
+        else :
+            vectorreg = pgas/factor_de_regalia
+
+        pago = vectorreg*ingresos_gas   
+
+        return(pago)
+
+    def reg_condenf(ingresos_condensados, fecha, Gn = 60, factor_de_regalia = .126):
+
+        pconden = precios["condensado"]
+        vectorreg = pd.Series(0, index = fecha)
+
+        vectorreg[pconden < Gn] = .05
+        vectorreg[pconden >= Gn] = ((pconden*factor_de_regalia)-2.5)/100
+
+        pago = vectorreg*ingresos_condensados
+
+        return(pago)
+
+
+    #Regalia adicional que se determinará en los Contratos considerando la aplicación de una
+    #tasa al Valor Contractual de los Hidrocarburos. 
+
+    def reg_adicf(regalia_adicional, fecha):    
+        if regimen_fiscal not in ["licencia"]:
+            regalia_adicional = 0
+        vectorreg = pd.Series(0, index = fecha)
+
+        pago = regalia_adicional*ingresos
+
+        return(pago)
+
+    def cpcf(regimen_fiscal = regimen_fiscal, region_fiscal = region_fiscal):
+        tasa_contrapresta = 0
+        if region_fiscal == "licencia":
+            contraprestaestado = pd.Series(0, index = fecha)
+        else:
+            limite_de_recuper = .125
+            if regimen_fiscal == "cpc":
+                tasa_contrapresta = .705
+            elif regimen_fiscal == "asignacion":
+                tasa_contrapresta = .705
+                if region_fiscal == "aceite terrestre":
+                    factor_terreste = 8.3
+
+            if region_fiscal == "aceite terrestre":
+                limite_de_recuper = .125
+            elif region_fiscal == "aguas someras":
+                limite_de_recuper = .125
+            elif region_fiscal == "aguas profundas":
+                limite_de_recuper = .60   
+            elif region_fiscal == "gas":
+                limite_de_recuper = .80
+            elif region_fiscal == "chicontepec":
+                limite_de_recuper = .60
+
+
+            factor_terrestre = 6.1
+            utilidad_operativa = pd.Series(0.0, index = fecha)
+            upliftexp = 0
+            valorfiscal = pd.Series(0, fecha)
+
+            opexelegible = opex_fijo + opex_var + opex_rme + gastoabandono
+            capexelegible = pd.Series(0, index = fecha)
+
+
+            if regimen_fiscal == "cpc":
+                capexelegible = (pozos_exploratorios + pozos_delimitadores + capex_estudios)*(1+upliftexp) + pozos_desarrollo + pozos_RMA + pozos_inyectores + capex_infra
+            elif regimen_fiscal == "asignacion":
+                capexelegible = depreciacion_anual()
+
+            gastoelegible = opexelegible + capexelegible + valorfiscal
+
+
+            recucostos = pd.Series(0.0, index = fecha)
+            saldoinicial = pd.Series(0.0, index = fecha)
+            i = 0 #gasto no recuperado
+
+            for x in recucostos.index:
+                saldoinicial[x] = gastoelegible[x] + i
+                if regimen_fiscal == "cpc":
+                    recucostos[x] = min(ingresos[x]*limite_de_recuper,saldoinicial[x])
+                elif regimen_fiscal == "asignacion":
+                    recucostos[x] = min(max(ingresos[x]*limite_de_recuper,
+                              gasto_equivalente_boed[x]*factor_terrestre),saldoinicial[x])
+                i = saldoinicial[x] - recucostos[x]
+
+            utilidad_operativa = ingresos -recucostos-reg_crudo -reg_gas -reg_conden #-factorCEE    
+            contraprestaestado = utilidad_operativa*tasa_contrapresta
+
+        return(contraprestaestado)
+
+    def derechos_impuestos_petrof(regimen_fiscal):
+        impuestos = pd.Series(0, index = fecha)
+        if regimen_fiscal == "licencia":
+            impuestos = bono + cuota_cont_exp + impuesto_actividadesEE + reg_crudo + reg_gas + reg_conden + reg_adic
+        elif regimen_fiscal == "cpc":
+            impuestos = cuota_cont_exp + impuesto_actividadesEE + reg_crudo + reg_gas + reg_conden + contracpc
+        elif regimen_fiscal == "asignacion":
+            impuestos = cuota_cont_exp + impuesto_actividadesEE + reg_crudo + reg_gas + reg_conden + contracpc
+        
+        #display(bono.head(),
+        #cuota_cont_exp.head(),
+        #impuesto_actividadesEE.head(),
+        #reg_crudo.head(),
+        #reg_gas.head(),
+        #reg_conden.head(),
+        #reg_adic.head())
+        
+        return(impuestos)
+
+    def depreciacion_anual():
+
+        DM_bono = pd.Series(84, index = fecha)
+        DM_explo = pd.Series(12, index = fecha)
+        DM_deli = pd.Series(12, index = fecha)
+        DM_desa = pd.Series(48, index = fecha)
+        DM_RMA = pd.Series(48, index = fecha)
+        DM_iny = pd.Series(48, index = fecha)
+        DM_infra = pd.Series(48, index = fecha)
+        DM_estudios = pd.Series(120, index = fecha)
+
+        depbono = cf.depreciation_sl(costs = bonof(bono_a_la_firma, fecha), life = DM_bono)
+        depexploratorios = cf.depreciation_sl(costs = pozos_exploratorios, life = DM_explo)
+        depdelimitadores = cf.depreciation_sl(costs = pozos_delimitadores, life = DM_deli)
+        depdesarrollo = cf.depreciation_sl(costs = pozos_desarrollo, life = DM_desa)
+        depRMA = cf.depreciation_sl(costs = pozos_RMA, life = DM_RMA)
+        depinyectores = cf.depreciation_sl(costs = pozos_inyectores, life = DM_iny)
+        depinfraestructura = cf.depreciation_sl(costs = capex_infra, life = DM_infra)
+        depexploracion = cf.depreciation_sl(costs = capex_estudios, life = DM_estudios)
+
+        matrizdepranual = depbono + depexploratorios + depdelimitadores + depdesarrollo + depRMA + depinyectores + depinfraestructura + depexploracion
+        vectordepr = pd.Series(0.00000, index = fecha)
+        vectordepr = matrizdepranual["Depr"]
+        pd.Series.sum(vectordepr)
+
+        #El paquete de cashflows no es preciso en todos los decimales
+
+        return(vectordepr)
+
+
+    def calculocf(i=0):
+        saldo_inicial_cf = pd.Series(0.0, index = fecha)
+        saldo_utilizado_cf = pd.Series(0.0, index = fecha)
+        saldo_vencido_cf = pd.Series(0.0, index = fecha)
+        saldo_adicional_cf = pd.Series(0.0, index = fecha)
+        saldo_final_cf = pd.Series(0.0, index = fecha)
+        utilbrutpos = pd.Series(0.0, index = fecha)
+
+        utilbrutpos[utilidad_bruta > 0] = utilidad_bruta
+        saldo_adicional_cf[utilidad_bruta < 0] = -utilidad_bruta
+        saldo_legal = saldo_adicional_cf.rolling(121).sum()
+        saldo_legal = saldo_legal.fillna(0)    
+        for x in saldo_inicial_cf.index:
+            saldo_inicial_cf[x] = i
+            i=0
+            saldo_utilizado_cf[x] = 0-min(saldo_inicial_cf[x],utilbrutpos[x]) 
+            #if x > saldo_inicial_cf.index.values[119]:
+            if x > saldo_inicial_cf.index.values[120]:
+                saldo_vencido_cf[x] = 0-max(saldo_inicial_cf[x] + saldo_utilizado_cf[x] - saldo_legal[x],0)
+            else:
+                saldo_vencido_cf[x] = 0
+            saldo_final_cf[x] = saldo_inicial_cf[x] + saldo_adicional_cf[x] + saldo_utilizado_cf[x] + saldo_vencido_cf[x]
+            i = saldo_final_cf[x]
+
+
+        return(saldo_utilizado_cf)
+
+    def pagoisrf(utilidad_bruta):
+
+        base_gravable_despuesCF = pd.Series(0.0, index = fecha)
+        beneficiofiscal = calculocf()
+        vectoraux = utilidad_bruta + calculocf()
+        base_gravable_despuesCF[vectoraux > 0] = vectoraux
+
+        pagoisr = base_gravable_despuesCF*tasa_isr         
+
+        return(pagoisr)
+
+    def descuentof():
+        dias_de_mes = fecha.days_in_month.values
+        diastotales = dias_de_mes.cumsum()
+        tasadiaria = ((1 + tasa_de_descuento)**(1/365))-1
+        vectormensual = pd.Series(0, index = fecha)
+        vectordetasa = pd.Series(tasadiaria, index = fecha)
+        descuentomensual  = 1/(1+vectordetasa)**diastotales
+
+        return(descuentomensual)
+
+
+    #Vectores auxiliares
+    fecha = mpp.index
+    dias_de_mes=pd.DatetimeIndex(fecha).day
+    fin_etapa_exploratoria = fecha[duracion_etapa_exploratoria]
+
+
+    #Funcion precios si existe el imput de precios asignar 1
+    precios = funprecios(1, fecha)
+
+    #Indexar conforme a fechas
+    mpp.index = fecha
+    precios.index = fecha
+
+    #Perfil de produccion
+    gasto_aceite_MMb = produccion.Qo*dias_de_mes/1_000
+    gasto_gas_MMMpcd = produccion.Qg*dias_de_mes/1_000
+    gasto_condensado_MMb = produccion.Qc*dias_de_mes/1_000
+    gasto_equivalente_boed = gastoequiv()
+
+    #Ingresos
+    ingresos_crudo = (precios["crudo"]-costo_transporte_crudo)*gasto_aceite_MMb
+    ingresos_gas = (precios["gas"]-costo_transporte_gas)*gasto_gas_MMMpcd
+    ingresos_condensado = (precios["condensado"]-costo_transporte_gas)*gasto_condensado_MMb
+
+    ingresos = ingresos_crudo + ingresos_gas + ingresos_condensado
+
+    #display( ingresos_crudo.head(),ingresos_gas.head(),ingresos_condensado.head())
+
+    #Inversion
+    pozos_exploratorios = mpp["CAPEX Pozos Exploratorios (MMUSD)"]
+    pozos_delimitadores = mpp["CAPEX Pozos Delimitadores (MMUSD)"]
+    pozos_desarrollo = mpp["CAPEX Pozos Desarrollo (MMUSD)"]
+    pozos_RMA = mpp["CAPEX Pozos RMA (MMUSD)"]
+    pozos_inyectores = mpp["CAPEX Pozos Inyectores (MMUSD)"]
+    capex_infra = mpp["CAPEX Infraestructura (MMUSD)"]
+    capex_estudios = mpp["CAPEX Exploración (Estudios/Sísmica) (MMUSD)"]
+
+    capex = pozos_exploratorios + pozos_delimitadores + pozos_desarrollo + pozos_RMA  + pozos_inyectores + capex_infra + capex_estudios 
+    
+    #Operación y Mantemiento
+    opex_fijo = mpp["OPEX Fijo (MMUSD)"]
+    opex_var = mpp["OPEX Variable (MMUSD)"]
+    opex_rme = mpp["OPEX RME (MMUSD)"]
+    abandono_pozos = mpp["OPEX Abandono Pozos (MMUSD)"]
+    abandono_infra = mpp["OPEX Abandono Infraestructura (MMUSD)"]
+
+    gastoabandono = calculoabandono(abandono_pozos,abandono_infra)
+    opex = opex_fijo + opex_rme + opex_var + gastoabandono
+
+    #Derecho e impuestos petroleros
+    bono = bonof(bono_a_la_firma, fecha)
+    cuota_cont_exp = cuota_cont_explf(fecha)
+    impuesto_actividadesEE = impuesto_actividadesEEf(fecha)
+    reg_crudo = reg_crudof(ingresos_crudo, fecha)
+    reg_gas = reg_gasf(ingresos_gas, fecha)
+    reg_conden = reg_condenf(ingresos_condensado, fecha)
+    reg_adic = reg_adicf(regalia_adicional, fecha)
+    contracpc = cpcf() 
+
+
+    impuestospetro = derechos_impuestos_petrof(regimen_fiscal)
+
+    #Impuestos Corporativos
+    depreciacion = depreciacion_anual()
+    ebitda = ingresos - opex
+    ebit = ebitda - depreciacion
+    utilidad_bruta = ebit - impuestospetro
+    pagoisr= pagoisrf(utilidad_bruta)
+
+    #Flujos
+    feantes = ingresos - capex - opex
+    fel = ingresos - capex - opex - impuestospetro - pagoisr
+
+    #Flujos Descontados
+    descuento = descuentof()
+    feantes_descontado = feantes*descuento
+    fel_descontado = fel*descuento
+
+    #Indicadores Economicos
+
+    parametros = {"Valor presente neto (VPN)": 0,
+                   "Valor presente de la inversión (VPI)":0,
+                   "Valor presente de los costos (VPC)":0, 
+                   "Eficiencia de la inversion (VPN/VPI)":0,
+                   "Relación beneficio costo (VPN/VPI + VPC)":0,
+                   "Tasa Interno de Retorno (TIR)": 0, 
+                   "Participación en el VPN del proyecto":0,
+                   "Participación en los FE del proyecto":0}
+
+    stakeholders = {"Proyecto" : parametros, "Estado" : parametros, "CEE": parametros}
+
+    indicadores_economicos = pd.DataFrame(stakeholders)
+
+    #VPN
+    indicadores_economicos.iloc[0,0] = pd.Series.sum(feantes_descontado)
+    indicadores_economicos.iloc[0,1] = pd.Series.sum(impuestospetro*descuento + pagoisr*descuento)
+    indicadores_economicos.iloc[0,2] = pd.Series.sum(fel_descontado)
+    #Valor presente de la inversión
+    indicadores_economicos.iloc[1,0] = pd.Series.sum(capex*descuento)
+    indicadores_economicos.iloc[1,1] = 0
+    indicadores_economicos.iloc[1,2] = pd.Series.sum(capex*descuento)
+    #Valor presente costos
+    indicadores_economicos.iloc[2,0] = pd.Series.sum(opex*descuento)
+    indicadores_economicos.iloc[2,1] = 0
+    indicadores_economicos.iloc[2,2] = pd.Series.sum(opex*descuento)
+    #Eficiencia de inversión
+    indicadores_economicos.iloc[3,0] = indicadores_economicos.iloc[0,0]/indicadores_economicos.iloc[1,0]
+    indicadores_economicos.iloc[3,1] = 0
+    indicadores_economicos.iloc[3,2] = indicadores_economicos.iloc[0,2]/indicadores_economicos.iloc[1,2]
+    #Relación beneficio costo
+    indicadores_economicos.iloc[4,0] = indicadores_economicos.iloc[0,0]/(indicadores_economicos.iloc[1,0] + indicadores_economicos.iloc[2,0])
+    indicadores_economicos.iloc[4,1] = 0
+    indicadores_economicos.iloc[4,2] = indicadores_economicos.iloc[0,2]/(indicadores_economicos.iloc[1,0] + indicadores_economicos.iloc[2,2])
+    #Tasa interna de retorno
+    indicadores_economicos.iloc[5,0] = (1 + np.irr(feantes))**12-1
+    indicadores_economicos.iloc[5,1] = 0
+    indicadores_economicos.iloc[5,2] = (1 + np.irr(fel))**12-1
+    #Participación VPN
+    indicadores_economicos.iloc[6,0] = indicadores_economicos.iloc[0,0]/indicadores_economicos.iloc[0,0]
+    indicadores_economicos.iloc[6,1] = indicadores_economicos.iloc[0,1]/indicadores_economicos.iloc[0,0] 
+    indicadores_economicos.iloc[6,2] = indicadores_economicos.iloc[0,2]/indicadores_economicos.iloc[0,0]
+    #Participación FE
+    indicadores_economicos.iloc[7,0] = pd.Series.sum(feantes)/pd.Series.sum(feantes)
+    indicadores_economicos.iloc[7,1] = pd.Series.sum((impuestospetro + pagoisr))/pd.Series.sum(feantes)
+    indicadores_economicos.iloc[7,2] = pd.Series.sum(fel)/pd.Series.sum(feantes)
+
+    #Medidasporbarril
+
+
+    valoresbarril = {"Valor" : {"CAPEX (USD/bpce)": pd.Series.sum(capex)/pd.Series.sum(gasto_equivalente_boed), 
+                                "Opex (USD/bpce)":pd.Series.sum(opex)/pd.Series.sum(gasto_equivalente_boed), 
+                                "Impuestos (USD/bpce)":pd.Series.sum(impuestospetro + pagoisr)/pd.Series.sum(gasto_equivalente_boed), 
+                                "Ganancia USD/bpce":pd.Series.sum(fel)/pd.Series.sum(gasto_equivalente_boed)}}
+
+    porbarril = pd.DataFrame(valoresbarril)
+
+    display(indicadores_economicos)
+    display(porbarril)
+    
+    fig1, ax1 = plt.subplots(figsize=(20,12))    
+    ax1.plot(fel_descontado,label='FEL @ r= ' +str(tasa_de_descuento),linestyle='solid',color='blue')
+    ax1.plot(ingresos,label='ingresos',linestyle='solid',alpha=0.9)
+    ax1.plot(capex,label='capex',linestyle='dotted',alpha=0.9)
+    ax1.plot(opex,label='opex',linestyle='dotted',alpha=0.9)
+    ax1.plot(impuestospetro,label='impuestospetro',linestyle='dashed',alpha=0.9)
+    ax1.plot(pagoisr,label='ISR',linestyle='dotted',alpha=0.9)
+    ax1.plot()
+    ax1.set_xlabel('Fecha')
+    ax1.set_ylabel('FEL descontado')
+    plt.title('Flujo de Efectivo Libre Descontado para el campo ' +str(input_campo))
+    plt.legend(loc='upper right')
+    plt.show()
+    
+
+    return indicadores_economicos
+
+
+def demo():
+    
+
+    tic=timeit.default_timer()
+
+    productividad()
+    perforacion()
+    economico(regimen_fiscal ,regalia_adicional, region_fiscal)
+
+    toc=timeit.default_timer()
+    tac= toc - tic
+
+    display('Tiempo de procesamiento: ' +str(tac)+' segundos')
+    
+    return
+
