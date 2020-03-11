@@ -32,6 +32,8 @@ warnings.filterwarnings("ignore")
 
 plt.rcParams.update({'font.size': 18})
 
+sns.set_context("paper", font_scale=2.5)  
+
 #########################################                            ########################################
 
 
@@ -58,7 +60,7 @@ def carga_bd():
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_full.csv',
+    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_full.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
@@ -81,7 +83,7 @@ def carga_bd():
                                   'contrato'],
                                   low_memory=True)
             
-    mx_reservas=pd.read_csv(r'/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_reservas.csv',
+    mx_reservas=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_reservas.csv',
                           index_col=0)
     
     toc=timeit.default_timer()
@@ -100,6 +102,7 @@ def productividad():
     global tipo2
     global tipo3
     global ajuste
+    global tipos
     
     tic=timeit.default_timer()
     
@@ -173,7 +176,7 @@ def productividad():
         display('Número de pozos en ' +str(input_campo)+': '+str(len(lista_pozos)))
 
         #Generacion de archivo de resultados
-        #pozos.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+        #pozos.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
         
         
         #INPUTS DE VARIABLES DE EVALUACION
@@ -555,7 +558,7 @@ def productividad():
                                    13:'error_Qi_exp',
                                    14:'error_di_exp', 
                                    15:hidrocarburo,
-                                   16:'mes',
+                                   16:'mes_max',
                                    17:'profundidad_vertical',
                                    18:'trayectoria',
                                    19:'first_oil',
@@ -596,8 +599,8 @@ def productividad():
         G_base=prod_base[gas].sum()
         C_base=prod_base.condensado_Mbd.sum()
         
-        #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-        #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
+        #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+        #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
                 
         return
             
@@ -682,6 +685,13 @@ def productividad():
     #d3=tipo3.di_harm.mean()
     b3=tipo3.b.mean()    
     
+    tipo1.loc[:,'tipo']='tipo1'
+    tipo2.loc[:,'tipo']='tipo2'
+    tipo3.loc[:,'tipo']='tipo3'
+    
+    tipos=pd.DataFrame()
+    tipos=tipos.append([tipo1,tipo2,tipo3])
+    
     perfil=pd.DataFrame()
     
     for x in df:
@@ -728,11 +738,11 @@ def productividad():
          'di_condensado': [tipo1.di_condensado.mean(), tipo2.di_condensado.mean(),tipo3.di_condensado.mean()]}
     
     ajuste = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
-    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
+    ajuste.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/parametros.csv')
         
-    #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
     perfil=perfil.set_index('mes')
-    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfiles_tipo.csv')
+    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfiles_tipo.csv')
     
     #display('Qi50 del campo:  '+str(gasto.Qi_hist.quantile(.5)),
      #       'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
@@ -746,7 +756,7 @@ def productividad():
         #    'd_media harm del Pozo Tipo 1:  '+str(tipo1.di_harm.quantile(.5)),
          #   'd_media harm del Pozo Tipo 2:  '+str(tipo2.di_harm.quantile(.5)),
           #  'd_media harm del Pozo Tipo 3:  '+str(tipo3.di_harm.quantile(.5)))
-      
+    distribucion=pd.DataFrame()  
     distribucion=pd.DataFrame(data={'numero_pozos': [len(tipo1),len(tipo2),len(tipo3)]},
                               index=['BAJA','MEDIA','ALTA'])
     
@@ -774,15 +784,22 @@ def productividad():
     
     #Distribucion del gasto inicial Qi
     fig0, ax0 = plt.subplots(figsize=(15,8))  
-    plt.hist(gasto.Qi_hist, alpha=0.5, label='Qi_hist',density=True)
+    sns.distplot(gasto.Qi_hist, hist=False, kde=True,label='Qi',color='Blue', kde_kws = {'shade': True})
     ax0.set_xlabel('Gasto inicial')
     ax0.set_ylabel('Densidad')
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
     plt.legend(loc='best')
     
     #Distribucion de la declinacion inicial di
+    #fig1, ax1 = plt.subplots(figsize=(15,8))  
+    #plt.hist(gasto.di_hyp, alpha=0.5, label='di',color='Green',density=True)
+    #ax1.set_xlabel('Declinacion inicial')
+    #ax1.set_ylabel('Densidad')
+    #plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
+    #plt.legend(loc='best')
+    
     fig1, ax1 = plt.subplots(figsize=(15,8))  
-    plt.hist(gasto.di_hyp, alpha=0.5, label='di',color='Green',density=True)
+    sns.distplot(gasto.di_hyp, hist=False, kde=True,label='di',color='Green', kde_kws = {'shade': True})
     ax1.set_xlabel('Declinacion inicial')
     ax1.set_ylabel('Densidad')
     plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
@@ -790,10 +807,14 @@ def productividad():
     
     #Distribucion del gasto historico vs pronosticado
     fig2, ax2 = plt.subplots(figsize=(15,8))
-    plt.hist(resultados[hidrocarburo], alpha=0.5, label='Qo historico',density=True)
-    plt.hist(resultados.hiperbolica, alpha=0.3, label='Hyperbolic Predicted',density=True)#,cumulative=True)
-    plt.hist(resultados.harmonica, alpha=0.3, label='Harmonic Predicted',density=True)
-    plt.hist(resultados.exponencial, alpha=0.3, label='Exponential Predicted',density=True)
+    sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True})
+    sns.distplot(resultados.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True})
+    sns.distplot(resultados.harmonica,hist=False, kde=True, label='Harmonic Predicted',  kde_kws = {'shade': True})
+    sns.distplot(resultados.exponencial,hist=False, kde=True, label='Exponential Predicted', kde_kws = {'shade': True})
+    #plt.hist( alpha=0.5, label='Qo historico',density=True)
+    #plt.hist(resultados.hiperbolica, alpha=0.3, label='Hyperbolic Predicted',density=True)#,cumulative=True)
+    #plt.hist(resultados.harmonica, alpha=0.3, label='Harmonic Predicted',density=True)
+    #plt.hist(resultados.exponencial, alpha=0.3, label='Exponential Predicted',density=True)
     ax2.set_xlabel('Gasto Qo')
     ax2.set_ylabel('Densidad')
     plt.title(str(hidrocarburo) +' Qo historico vs Pronosticado para el campo ' +str(input_campo))
@@ -804,10 +825,14 @@ def productividad():
     if hidrocarburo == 'aceite_Mbd':
         
         fig15, ax15 = plt.subplots(figsize=(15,8))  
-        plt.hist(resultados[gas], alpha=0.5, label='Qg historico',density=True)
-        plt.hist(resultados.gas_hiperbolica, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
-        plt.hist(resultados.gas_harmonica, alpha=0.5, label='Harmonic Gas',density=True)
-        plt.hist(resultados.gas_exponencial, alpha=0.5, label='Exponential Gas',density=True)
+        sns.distplot(resultados[gas], hist=False, kde=True,label='Qg historico', kde_kws = {'shade': True})
+        sns.distplot(resultados.gas_hiperbolica, hist=False, kde=True,label='Hyperbolic Gas', kde_kws = {'shade': True})
+        sns.distplot(resultados.gas_harmonica, hist=False, kde=True,label='Harmonic Gas', kde_kws = {'shade': True})
+        sns.distplot(resultados.gas_exponencial, hist=False, kde=True,label='Exponential Gas', kde_kws = {'shade': True})
+        #plt.hist(resultados[gas], alpha=0.5, label='Qg historico',density=True)
+        #plt.hist(resultados.gas_hiperbolica, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
+        #plt.hist(resultados.gas_harmonica, alpha=0.5, label='Harmonic Gas',density=True)
+        #plt.hist(resultados.gas_exponencial, alpha=0.5, label='Exponential Gas',density=True)
         ax15.set_xlabel('Gasto Qg')
         ax15.set_ylabel('Densidad')
         plt.title(' Qg histórico vs Pronosticado para el campo ' +str(input_campo))
@@ -815,58 +840,64 @@ def productividad():
         plt.show()
     
     #Pie chart de distribucion de Pozos Tipo 
-    labels = 'Baja', 'Media', 'Alta'
-    explode = (0.1, 0.1, 0.1) 
-    fig3, ax3 = plt.subplots(figsize=(15,8))
-    ax3.pie(distribucion, 
-            explode=explode, 
-            labels=distribucion.numero_pozos,
-            colors=['Red','Blue','Green'],
-            autopct='%1.1f%%',
-            shadow=True, 
-            startangle=90)
-    ax3.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
+    #labels = 'Baja', 'Media', 'Alta'
+    #explode = (0.1, 0.1, 0.1) 
+    fig3, ax3 = plt.subplots(figsize=(15,8)) #nrows=1, ncols=2, sharex=False, sharey=False, squeeze=True, subplot_kw=None, gridspec_kw=None, **fig_kw2,2,
+    sns.barplot(distribucion.index,distribucion.numero_pozos,palette='RdYlGn')#color=['Red','Blue','Green'])
+    plt.title('Numero de pozos tipo para el campo' +str(input_campo))
+    ax3.set_xlabel('Gasto inicial Qi')
+    ax3.set_ylabel('Numero de pozos')
+    plt.legend(loc='best', fontsize='small')
     plt.show()
+    #ax3.pie(distribucion, 
+            #explode=explode, 
+            #labels=distribucion.numero_pozos,
+            #colors=['Red','Blue','Green'],
+            #autopct='%1.1f%%',
+            #shadow=True, 
+            #startangle=90)
+    #ax3.axis('equal') # Equal aspect ratio ensures that pie is drawn as a circle.
+    #plt.show()
     
     #Grafica de barras por tipo de pozo
-    fig20,ax20=plt.subplots(figsize=(15,9))
-    ax20.bar(distribucion.index,distribucion.numero_pozos, color=['Red','Blue','Green'])
-    plt.show()
+    #fig20,ax20=plt.subplots(figsize=(10,8))
+    #ax32.bar(distribucion.index,distribucion.numero_pozos, color=['Red','Blue','Green'])
+    #plt.show()
     
     #Dispersion del gasto inicial Qi
-    fig4, ax4 = plt.subplots(figsize=(15,8))  
-    ax4.scatter(tipo1.pozo,tipo1.Qi_hist,color='Red',label='BAJA')
-    ax4.scatter(tipo2.pozo,tipo2.Qi_hist,color='Blue',label='MEDIA')
-    ax4.scatter(tipo3.pozo,tipo3.Qi_hist,color='Green',label='ALTA')
-    ax4.set_xlabel('Pozo')
-    ax4.set_ylabel('Gasto inicial Qi')
-    ax4.set_xticklabels(labels=unique_well_list,rotation=90)
-    plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' por pozo')
-    plt.legend(loc='best', fontsize='small')
-    plt.show()
+    #fig4, ax4 = plt.subplots(figsize=(15,8))  
+    #ax4.scatter(tipo1.pozo,tipo1.Qi_hist,color='Red',label='BAJA')
+    #ax4.scatter(tipo2.pozo,tipo2.Qi_hist,color='Blue',label='MEDIA')
+    #ax4.scatter(tipo3.pozo,tipo3.Qi_hist,color='Green',label='ALTA')
+    #ax4.set_xlabel('Pozo')
+    #ax4.set_ylabel('Gasto inicial Qi')
+    #ax4.set_xticklabels(labels=unique_well_list,rotation=90)
+    #plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' por pozo')
+    #plt.legend(loc='best', fontsize='small')
+    #plt.show()
     
     #Dispersion del gasto inicial Qi vs Profundidad Vertical
-    fig7, ax7 = plt.subplots(figsize=(15,8))  
-    ax7.scatter(tipo1.profundidad_vertical,tipo1.Qi_hist,color='Red',alpha=0.5,label='BAJA')
-    ax7.scatter(tipo2.profundidad_vertical,tipo2.Qi_hist,color='Blue',alpha=0.5,label='MEDIA')
-    ax7.scatter(tipo3.profundidad_vertical,tipo3.Qi_hist,color='Green',alpha=0.5,label='ALTA')
-    ax7.set_xlabel('Profundidad Vertical')
-    ax7.set_ylabel('Gasto inicial Qi')
-    plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' vs Profundidad Vertical')
-    plt.legend(loc='best', fontsize='small')
-    plt.show()
+    #fig7, ax7 = plt.subplots(figsize=(15,8))  
+    #ax7.scatter(tipo1.profundidad_vertical,tipo1.Qi_hist,color='Red',alpha=0.5,label='BAJA')
+    #ax7.scatter(tipo2.profundidad_vertical,tipo2.Qi_hist,color='Blue',alpha=0.5,label='MEDIA')
+    #ax7.scatter(tipo3.profundidad_vertical,tipo3.Qi_hist,color='Green',alpha=0.5,label='ALTA')
+    #ax7.set_xlabel('Profundidad Vertical')
+    #ax7.set_ylabel('Gasto inicial Qi')
+    #plt.title('Dispersion del gasto inicial del campo ' +str(input_campo) +' vs Profundidad Vertical')
+    #plt.legend(loc='best', fontsize='small')
+    #plt.show()
     
     
     #Dispersion del gasto inicial Qi vs Trayectoria
-    fig8, ax8 = plt.subplots(figsize=(15,8))
-    ax8.scatter(tipo1.trayectoria,tipo1.Qi_hist,color='Red',label='BAJA')
-    ax8.scatter(tipo2.trayectoria,tipo2.Qi_hist,color='Blue',label='MEDIA')
-    ax8.scatter(tipo3.trayectoria,tipo3.Qi_hist,color='Green',label='ALTA')
-    ax8.set_xlabel('Trayectoria')
-    ax8.set_ylabel('Gasto inicial Qi')
-    plt.title('Gasto inicial del campo ' +str(input_campo)+' vs Trayectoria')
-    plt.legend(loc='best', fontsize='small')
-    plt.show()
+    #fig8, ax8 = plt.subplots(figsize=(15,8))
+    #ax8.scatter(tipo1.trayectoria,tipo1.Qi_hist,color='Red',label='BAJA')
+    #ax8.scatter(tipo2.trayectoria,tipo2.Qi_hist,color='Blue',label='MEDIA')
+    #ax8.scatter(tipo3.trayectoria,tipo3.Qi_hist,color='Green',label='ALTA')
+    #ax8.set_xlabel('Trayectoria')
+    #ax8.set_ylabel('Gasto inicial Qi')
+    #plt.title('Gasto inicial del campo ' +str(input_campo)+' vs Trayectoria')
+    #plt.legend(loc='best', fontsize='small')
+    #plt.show()
     
     #Tiempo de produccion vs Gasto de hidrocarburo
     fig5, ax5 = plt.subplots(figsize=(15,8)) 
@@ -876,21 +907,28 @@ def productividad():
     plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
     plt.show()
     
-    fig10, ax10 = plt.subplots(figsize=(15,8)) 
-    ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='BAJA')
-    ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='MEDIA')
-    ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='ALTA')
-    ax10.set_xlabel('First oil')
-    ax10.set_ylabel('Gasto inicial Qi')
-    plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi')
-    plt.legend(loc='best', fontsize='small')
-    plt.show()
+    #fig4, ax4 = plt.subplots(figsize=(15,8))
+    plt.figure(figsize=(15,8))
+    s = sns.relplot(x='first_oil',y='Qi_hist', hue='tipo', size='tipo',
+                kind='scatter',height=10,aspect=2,
+                alpha=1, palette="bright", data=tipos,sizes=(1000,2000))
+                #col='trayectoria',row='estado_actual',#size='xx',sizes=(40, 400), height=6, 
+    #ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='BAJA')
+    #ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='MEDIA')
+    #ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='ALTA')
+    plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi',fontsize=20)
+    s.set_xlabel('First oil',fontsize=15)
+    s.set_ylabel('Gasto inicial Qi',fontsize=15)
+    s.tick_params(labelsize=5)
+    #plt.legend(loc='best', fontsize='small')
+    sns.plt.show()
     
+
     fig9, ax9 = plt.subplots(figsize=(15,8))
     #prod_base2=prod_base.groupby(by='pozo')
-    ax9.scatter(tipo1.mes,tipo1.Qi_hist,color='Red',label='BAJA')
-    ax9.scatter(tipo2.mes,tipo2.Qi_hist,color='Blue',label='MEDIA')
-    ax9.scatter(tipo3.mes,tipo3.Qi_hist,color='Green',label='ALTA')
+    ax9.scatter(tipo1.mes_max,tipo1.Qi_hist,color='Red',label='BAJA')
+    ax9.scatter(tipo2.mes_max,tipo2.Qi_hist,color='Blue',label='MEDIA')
+    ax9.scatter(tipo3.mes_max,tipo3.Qi_hist,color='Green',label='ALTA')
     plt.title('Meses Produciendo vs Qi ' +str(hidrocarburo))
     ax9.set_xlabel('Meses Produciendo')
     ax9.set_ylabel('Qi Aceite')
@@ -932,8 +970,10 @@ def productividad():
 
         fig1, ax1 = plt.subplots(figsize=(15,8))  
         fff=resultados.fecha.min()
-        plt.hist(resultados[hidrocarburo], alpha=0.6, label='Qo since ' +str(fff.year),density=True)
-        plt.hist(resultados_desde[hidrocarburo], alpha=0.3, label='Qo since First oil > '+str(input_fecha.year),density=True)
+        sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo since ' +str(fff.year), kde_kws = {'shade': True})
+        sns.distplot(resultados_desde[hidrocarburo],hist=False, kde=True, label='Qo since First oil > '+str(input_fecha.year),kde_kws = {'shade': True})
+        #plt.hist(resultados[hidrocarburo], alpha=0.6, label='Qo since ' +str(fff.year),density=True)
+        #plt.hist(resultados_desde[hidrocarburo], alpha=0.3, label='Qo since First oil > '+str(input_fecha.year),density=True)
         ax1.set_xlabel('Gasto Qo')
         ax1.set_ylabel('Densidad')
         plt.title('Qo historico vs Qo since First Oil en el campo '+str(input_campo))
@@ -941,8 +981,10 @@ def productividad():
         plt.show
 
         fig2, ax2 = plt.subplots(figsize=(15,8))  
-        plt.hist(resultados.Qi_hist, alpha=0.6, label='Qi since ' +str(fff.year),density=True)
-        plt.hist(resultados_desde.Qi_desde, alpha=0.3, label='Qi since First oil > ' +str(input_fecha.year),density=True)
+        sns.distplot(resultados.Qi_hist,hist=False, kde=True, label='Qi since ' +str(fff.year), kde_kws = {'shade': True})
+        sns.distplot(resultados_desde.Qi_desde,hist=False, kde=True, label='Qi since First oil > ' +str(input_fecha.year), kde_kws = {'shade': True})
+        #plt.hist(resultados.Qi_hist, alpha=0.6, label='Qi since ' +str(fff.year),density=True)
+        #plt.hist(resultados_desde.Qi_desde, alpha=0.3, label='Qi since First oil > ' +str(input_fecha.year),density=True)
         ax2.set_xlabel('Gasto inicial Qi')
         ax2.set_ylabel('Densidad')
         plt.title('Qi historico vs Qi since First Oil en el campo '+str(input_campo))
@@ -1208,7 +1250,7 @@ def perforacion():
 
     produccion=produccion.set_index('fecha')
 
-    produccion.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/produccion.csv')
+    produccion.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/produccion.csv')
 
     #Grafica de Perfil de produccion
     fig1, ax1 = plt.subplots(figsize=(15,8))    
@@ -1240,7 +1282,7 @@ def economico(regimen_fiscal, regalia_adicional, region_fiscal):
     #Modelo Económico Mensualisado
     
     #Leer MPP y perfil de precios
-    mpp = pd.read_csv(r"C:/Users/elias/Google Drive/python/csv/benchmark/archivo.csv",
+    mpp = pd.read_csv(r"/Users/fffte/ainda_drive/python/csv/benchmark/archivo.csv",
                       index_col=0,parse_dates=True)
 
     fecha = pd.Series(mpp.index)
@@ -1296,7 +1338,7 @@ def economico(regimen_fiscal, regalia_adicional, region_fiscal):
     #Da la funcion para la matriz de precios
     def funprecios(dado, fecha, precio_crudoint = 53.57, precio_gasint = 4.11, precio_condensadoint = 0):
         if dado == 1:
-            imputprecios = pd.read_csv(r"C:/Users/elias/Google Drive/python/csv/benchmark/perfil_precios.csv")
+            imputprecios = pd.read_csv(r"/Users/fffte/ainda_drive/python/csv/benchmark/perfil_precios.csv")
             precio_crudo = imputprecios["Precio Aceite (USD/b)"]
             precio_gas = imputprecios["Precio Gas (USD/Mpc)"]
             precio_condensado = imputprecios["Precio Condensado (USD/b)"]
