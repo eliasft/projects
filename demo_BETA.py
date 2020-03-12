@@ -34,6 +34,40 @@ plt.rcParams.update({'font.size': 18})
 
 sns.set_context("paper", font_scale=2.5)  
 
+import pandas as pd
+import numpy as np
+from datetime import datetime
+import dateparser 
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+import os
+import scipy
+import scipy.stats
+from scipy.optimize import curve_fit
+from scipy.optimize import minimize
+
+from datetime import datetime, timedelta,date
+%matplotlib inline
+
+import timeit
+import warnings
+
+plt.style.use('seaborn-white')
+
+pd.set_option('display.max_rows', 100_000_000)
+pd.set_option('display.max_columns', 100_000_000)
+pd.set_option('display.width', 1_000)
+pd.set_option('precision', 2)
+pd.options.display.float_format = '{:,.2f}'.format
+
+warnings.filterwarnings("ignore")
+
+plt.rcParams.update({'font.size': 20})
+
+sns.set_context("paper", font_scale=2.5)  
+
 #########################################                            ########################################
 
 
@@ -60,7 +94,7 @@ def carga_bd():
     
     tic=timeit.default_timer()
     
-    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_full.csv',
+    mx_bd=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_full.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
@@ -83,7 +117,7 @@ def carga_bd():
                                   'contrato'],
                                   low_memory=True)
             
-    mx_reservas=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_reservas.csv',
+    mx_reservas=pd.read_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/mexico/mx_reservas.csv',
                           index_col=0)
     
     toc=timeit.default_timer()
@@ -133,7 +167,23 @@ def productividad():
         #INPUT DE CAMPO
         input_campo = str(input("Nombre de campo: "))
         
+        #SUBSET DE LA BASE DE DATOS POR CAMPO/POZO
+        pozos=pd.DataFrame()
+
+        seleccion_pozo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
+        seleccion_campo=mx_bd.campo.str.match(pat=input_campo)
+        pozos=mx_bd.loc[seleccion_campo & seleccion_pozo]
+        
+        seleccion_reservas=mx_reservas.NOMBRE.str.match(pat=input_campo)
+        info_reservas=mx_reservas.loc[seleccion_reservas]
+        #info_reservas=mx_reservas[mx_reservas.NOMBRE == str(input_campo)]
+        
+        lista_pozos=list(pd.unique(pozos['pozo']))
+
+        display('Número de pozos en ' +str(input_campo)+': '+str(len(lista_pozos)))
+        
         #INPUT DE RANGO DE MUESTRA
+        
         input_fecha=input("Tomar muestra desde fecha (yyyy-mm-dd): ")
 
         if input_fecha == str(''):
@@ -146,37 +196,60 @@ def productividad():
         #Regimen Fiscal especificar si es "licencia", "cpc" o "asignacion" 
         regimen_fiscal = input("Régimen Fiscal: ") #"licencia"
         regimen_fiscal = str(regimen_fiscal)
+        
+        if regimen_fiscal == str(''):
+            regimen_fiscal = 'licencia'
+        
         if regimen_fiscal not in ["licencia","cpc","asignacion"]:
              raise SystemExit("Párametro Inválido")
 
-
         if regimen_fiscal == "licencia":
             regalia_adicional = input("Regalía Adicional Decimales: ") #En decimales el porcentaje de regalía adicional para los contratos de licencia
-            regalia_adicional = float(regalia_adicional)
+            
+            if regalia_adicional == str(''):
+                regalia_adicional = float(0.10)
+            else:
+                regalia_adicional = float(regalia_adicional)
 
         #Region fiscal: aceite_terrestre, aguas_someras, aguas_profundas, gas, chicontepec 
-        region_fiscal =  input("Región Fiscal: ") #"aceite_terrestre"   
-        region_fiscal=str(region_fiscal)
+        #region_fiscal =  input("Región Fiscal: ") #"aceite_terrestre"   
+        #region_fiscal=str(region_fiscal)
+        #if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
+         #   raise SystemExit("Párametro Inválido")
+
+        if pozos.cuenca.str.contains('TAMPICO-MISANTLA').any() == True:
+                region_fiscal = 'chicontepec'
+        
+        if pozos.cuenca.str.contains('VERACRUZ').any() == True:
+            if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True: 
+                region_fiscal = 'gas'
+            else:
+                region_fiscal = 'aceite_terrestre'
+
+        if pozos.cuenca.str.contains('BURGOS' or 'SABINAS').any() == True:
+            if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True:
+                region_fiscal = 'gas' 
+            else:
+                region_fiscal = 'aceite_terrestre'
+
+        if pozos.cuenca.str.contains('CUENCAS DEL SURESTE').any() == True:
+            if pozos.ubicacion.str.contains('MARINO').any() == True:
+                region_fiscal = 'aguas_someras'
+            else:
+                region_fiscal = 'aceite_terrestre'
+
+        if pozos.ubicacion.str.contains('AGUAS PROFUNDAS').any() == True :
+            region.fiscal = 'aguas_profundas'
+
+        if pozos.cuenca.str.contains('CINTURON PLEGADO DE CHIAPAS').any() == True:
+            region.fiscal = 'aceite_terrestre'
+
         if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
             raise SystemExit("Párametro Inválido")
-        
-        
-        #Subset de la BD con el campo de analisis
 
-        seleccion_pozo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
-        seleccion_campo=mx_bd.campo.str.contains(pat=input_campo,regex=True)
-        pozos=mx_bd.loc[seleccion_campo & seleccion_pozo]
-        
-        seleccion_reservas=mx_reservas.NOMBRE.str.match(pat=input_campo)
-        info_reservas=mx_reservas.loc[seleccion_reservas]
-        #info_reservas=mx_reservas[mx_reservas.NOMBRE == str(input_campo)]
-        
-        lista_pozos=list(pd.unique(pozos['pozo']))
-
-        display('Número de pozos en ' +str(input_campo)+': '+str(len(lista_pozos)))
-
-        #Generacion de archivo de resultados
-        #pozos.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+    
+         #ARCHIVO CSV CON BASE DE DATOS DE POZOS
+        #pozos.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
         
         
         #INPUTS DE VARIABLES DE EVALUACION
@@ -192,8 +265,8 @@ def productividad():
         num_pozos=6
         nequip=1
         cap=1_000
-        reservas_aceite=float(info_reservas['CRUDO 2P (MMB)'])
-        reservas_gas=float(info_reservas['GAS NATURAL 2P (MMBPCE)'])
+        reservas_aceite=float(info_reservas['CRUDO 2P (MMB)'].sum())
+        reservas_gas=float(info_reservas['GAS NATURAL 2P (MMBPCE)'].sum())
         
         pozos_tipo1=np.round(num_pozos*baja,0)
         pozos_tipo2=np.round(num_pozos*media,0)
@@ -202,7 +275,7 @@ def productividad():
         return len_proy, nequip, cap, reservas_aceite, num_pozos
     
 
-########      FUNCIONES PARA EL ANALISIS DE DECLINACION DE POZOS      ####### 
+##########################      FUNCIONES PARA EL ANALISIS DE DECLINACION DE POZOS      ########################## 
     
     def remove_nan_and_zeroes_from_columns(df, variable):
         """
@@ -599,8 +672,8 @@ def productividad():
         G_base=prod_base[gas].sum()
         C_base=prod_base.condensado_Mbd.sum()
         
-        #resultados.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-        #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
+        #resultados.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+        #gasto.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/gasto.csv')
                 
         return
             
@@ -632,10 +705,13 @@ def productividad():
     
     d=gasto.di_hyp.mean()
     #d=gasto.di_harm.mean()
+    
     b=gasto.b.mean()
     
-    ###### Subset de Pozos Tipo
+    ##################     SUBSET DE POZOS TIPO      #######################
 
+    ######### POZOS TIPO 1 - Qi BAJA #########
+    
     criterio1=(gasto['Qi_hist'] <= q_baja)
     tipo1=gasto.loc[criterio1]
     
@@ -651,6 +727,9 @@ def productividad():
     d1=tipo1.di_hyp.mean()
     #d1=tipo1.di_harm.mean()
     b1=tipo1.b.mean()
+    
+    
+    ######### POZOS TIPO 2 - Qi MEDIA #########
     
     criterio2=(gasto['Qi_hist'] > q_baja) & (gasto['Qi_hist'] < q_alta)
     tipo2=gasto.loc[criterio2]
@@ -668,6 +747,9 @@ def productividad():
     d2=tipo2.di_hyp.mean()
     #d2=tipo2.di_harm.mean()
     b2=tipo2.b.mean()    
+    
+    
+    ######### POZOS TIPO 3 - Qi ALTA #########
     
     criterio3=(gasto['Qi_hist'] >= q_alta)
     tipo3=gasto.loc[criterio3]
@@ -697,6 +779,7 @@ def productividad():
     for x in df:
         
         perfil['mes']=df.periodo
+        perfil['fecha']=df.fecha
         #perfil['P50_BAJA']=(q_baja/((1.0+b*d*df.periodo)**(1.0/b)))
         #perfil['P50']=(q_media/((1.0+b*d*df.periodo)**(1.0/b)))
         #perfil['P50_ALTA']=(q_alta/((1.0+b*d*df.periodo)**(1.0/b)))
@@ -738,11 +821,11 @@ def productividad():
          'di_condensado': [tipo1.di_condensado.mean(), tipo2.di_condensado.mean(),tipo3.di_condensado.mean()]}
     
     ajuste = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
-    ajuste.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/parametros.csv')
+    ajuste.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/parametros.csv')
         
-    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    #perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
     perfil=perfil.set_index('mes')
-    perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfiles_tipo.csv')
+    perfil.to_csv(r'C:/Users/elias/Google Drive/python/csv/benchmark/perfiles_tipo.csv')
     
     #display('Qi50 del campo:  '+str(gasto.Qi_hist.quantile(.5)),
      #       'Qi50 del Pozo Tipo 1:  '+str(tipo1.Qi_hist.quantile(.5)),
@@ -843,11 +926,14 @@ def productividad():
     #labels = 'Baja', 'Media', 'Alta'
     #explode = (0.1, 0.1, 0.1) 
     fig3, ax3 = plt.subplots(figsize=(15,8)) #nrows=1, ncols=2, sharex=False, sharey=False, squeeze=True, subplot_kw=None, gridspec_kw=None, **fig_kw2,2,
-    sns.barplot(distribucion.index,distribucion.numero_pozos,palette='RdYlGn')#color=['Red','Blue','Green'])
-    plt.title('Numero de pozos tipo para el campo' +str(input_campo))
-    ax3.set_xlabel('Gasto inicial Qi')
-    ax3.set_ylabel('Numero de pozos')
-    plt.legend(loc='best', fontsize='small')
+    sns.barplot(distribucion.numero_pozos, 
+                distribucion.index, 
+                palette='coolwarm',
+                label='Numero de pozos')#color=['Red','Blue','Green'])
+    plt.title('Numero de pozos tipo para el campo ' +str(input_campo))
+    ax3.set_xlabel('Numero de pozos')
+    ax3.set_ylabel('Nivel de Qi')
+    #plt.legend(loc='best', fontsize='small')
     plt.show()
     #ax3.pie(distribucion, 
             #explode=explode, 
@@ -907,33 +993,39 @@ def productividad():
     plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
     plt.show()
     
+    fig9, ax9 = plt.subplots(figsize=(15,8)) 
+    ax9.scatter(resultados.fecha, resultados[hidrocarburo],color='Gray',alpha=0.5)
+    ax9.set_xlabel('Mes')
+    ax9.set_ylabel('Qo')
+    plt.title('Gasto de ' +str(hidrocarburo)+' vs Tiempo de Producción')
+    plt.show()
+    
     #fig4, ax4 = plt.subplots(figsize=(15,8))
-    plt.figure(figsize=(15,8))
-    s = sns.relplot(x='first_oil',y='Qi_hist', hue='tipo', size='tipo',
+    #plt.figure(figsize=(15,8))
+    s = sns.relplot(x='first_oil',y='Qi_hist', hue='tipo', size='estado_actual',
                 kind='scatter',height=10,aspect=2,
-                alpha=1, palette="bright", data=tipos,sizes=(1000,2000))
+                alpha=1, palette="bright", data=tipos,sizes=(1000,3000))
                 #col='trayectoria',row='estado_actual',#size='xx',sizes=(40, 400), height=6, 
     #ax10.scatter(tipo1.first_oil,tipo1.Qi_hist,color='Red',alpha=0.5,label='BAJA')
     #ax10.scatter(tipo2.first_oil,tipo2.Qi_hist,color='Blue',alpha=0.5,label='MEDIA')
     #ax10.scatter(tipo3.first_oil,tipo3.Qi_hist,color='Green',alpha=0.5,label='ALTA')
     plt.title('Dispersion de first oil de ' +str(input_campo) +' vs Gasto inicial Qi',fontsize=20)
-    s.set_xlabel('First oil',fontsize=15)
-    s.set_ylabel('Gasto inicial Qi',fontsize=15)
-    s.tick_params(labelsize=5)
-    #plt.legend(loc='best', fontsize='small')
-    sns.plt.show()
-    
-
-    fig9, ax9 = plt.subplots(figsize=(15,8))
-    #prod_base2=prod_base.groupby(by='pozo')
-    ax9.scatter(tipo1.mes_max,tipo1.Qi_hist,color='Red',label='BAJA')
-    ax9.scatter(tipo2.mes_max,tipo2.Qi_hist,color='Blue',label='MEDIA')
-    ax9.scatter(tipo3.mes_max,tipo3.Qi_hist,color='Green',label='ALTA')
-    plt.title('Meses Produciendo vs Qi ' +str(hidrocarburo))
-    ax9.set_xlabel('Meses Produciendo')
-    ax9.set_ylabel('Qi Aceite')
-    plt.legend(loc='best')
+    #s.set_xlabel('First oil',fontsize=15)
+    #s.set_ylabel('Gasto inicial Qi',fontsize=15)
+    #s.tick_params(labelsize=5)
+    #plt.legend(loc='best', fontsize='medium')
     plt.show()
+
+    #fig9, ax9 = plt.subplots(figsize=(15,8))
+    #prod_base2=prod_base.groupby(by='pozo')
+    #ax9.scatter(tipo1.mes_max,tipo1.Qi_hist,color='Red',label='BAJA')
+    #ax9.scatter(tipo2.mes_max,tipo2.Qi_hist,color='Blue',label='MEDIA')
+    #ax9.scatter(tipo3.mes_max,tipo3.Qi_hist,color='Green',label='ALTA')
+    #plt.title('Meses Produciendo vs Qi ' +str(hidrocarburo))
+    #ax9.set_xlabel('Meses Produciendo')
+    #ax9.set_ylabel('Qi Aceite')
+    #plt.legend(loc='best')
+    #plt.show()
 
     #Perfiles de pozos tipo
     fig6, ax6 = plt.subplots(figsize=(15,8))    
@@ -1003,9 +1095,6 @@ def productividad():
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
     return
-
-
-
 
 #########################################                            ########################################
 
