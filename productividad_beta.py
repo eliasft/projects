@@ -32,6 +32,7 @@ plt.rcParams.update({'font.size': 20})
 
 sns.set_context("paper", font_scale=2.5)  
 
+
 #########################################                            ########################################
 
 
@@ -834,7 +835,7 @@ def productividad():
     
     #Distribucion del gasto inicial Qi
     fig0, ax0 = plt.subplots(figsize=(15,8))  
-    sns.distplot(gasto.Qi_hist, hist=False, kde=True,label='Qi',color='Blue', kde_kws = {'shade': True})
+    sns.distplot(gasto.Qi_hist, hist=False, kde=True,label='Qi',color='Blue', kde_kws = {'shade': True, 'bw':'silverman'})
     ax0.set_xlabel('Gasto inicial')
     ax0.set_ylabel('Densidad')
     plt.title('Histograma del gasto inicial del campo ' +str(input_campo))
@@ -849,7 +850,7 @@ def productividad():
     #plt.legend(loc='best')
     
     fig1, ax1 = plt.subplots(figsize=(15,8))  
-    sns.distplot(gasto.di_hyp, hist=False, kde=True,label='di',color='Green', kde_kws = {'shade': True})
+    sns.distplot(gasto.di_hyp, hist=False, kde=True,label='di',color='Green', kde_kws = {'shade': True,'bw':'silverman'})
     ax1.set_xlabel('Declinacion inicial')
     ax1.set_ylabel('Densidad')
     plt.title('Histograma de la declinacion inicial del campo ' +str(input_campo))
@@ -857,10 +858,10 @@ def productividad():
     
     #Distribucion del gasto historico vs pronosticado
     fig2, ax2 = plt.subplots(figsize=(15,8))
-    sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True})
-    sns.distplot(resultados.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True})
-    sns.distplot(resultados.harmonica,hist=False, kde=True, label='Harmonic Predicted',  kde_kws = {'shade': True})
-    sns.distplot(resultados.exponencial,hist=False, kde=True, label='Exponential Predicted', kde_kws = {'shade': True})
+    sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(resultados.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(resultados.harmonica,hist=False, kde=True, label='Harmonic Predicted',  kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(resultados.exponencial,hist=False, kde=True, label='Exponential Predicted', kde_kws = {'shade': True,'bw':'silverman'})
     #plt.hist( alpha=0.5, label='Qo historico',density=True)
     #plt.hist(resultados.hiperbolica, alpha=0.3, label='Hyperbolic Predicted',density=True)#,cumulative=True)
     #plt.hist(resultados.harmonica, alpha=0.3, label='Harmonic Predicted',density=True)
@@ -875,10 +876,10 @@ def productividad():
     if hidrocarburo == 'aceite_Mbd':
         
         fig2a, ax2a = plt.subplots(figsize=(15,8))  
-        sns.distplot(resultados[gas], hist=False, kde=True,label='Qg historico', kde_kws = {'shade': True})
-        sns.distplot(resultados.gas_hiperbolica, hist=False, kde=True,label='Hyperbolic Gas', kde_kws = {'shade': True})
-        sns.distplot(resultados.gas_harmonica, hist=False, kde=True,label='Harmonic Gas', kde_kws = {'shade': True})
-        sns.distplot(resultados.gas_exponencial, hist=False, kde=True,label='Exponential Gas', kde_kws = {'shade': True})
+        sns.distplot(resultados[gas], hist=False, kde=True,label='Qg historico', kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(resultados.gas_hiperbolica, hist=False, kde=True,label='Hyperbolic Gas', kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(resultados.gas_harmonica, hist=False, kde=True,label='Harmonic Gas', kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(resultados.gas_exponencial, hist=False, kde=True,label='Exponential Gas', kde_kws = {'shade': True,'bw':'silverman'})
         #plt.hist(resultados[gas], alpha=0.5, label='Qg historico',density=True)
         #plt.hist(resultados.gas_hiperbolica, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
         #plt.hist(resultados.gas_harmonica, alpha=0.5, label='Harmonic Gas',density=True)
@@ -965,10 +966,10 @@ def productividad():
     sns.scatterplot(x='first_oil', y='Qi_hist', 
                      hue='tipo',
                      size='profundidad_vertical',
-                     sizes=(1000,3000),
+                     sizes=(1000,2000),
                      alpha=0.8,
                      legend='brief',
-                     palette='Blues',
+                     palette='Set1',
                      #style="tipo",
                      #markers=True,
                      data=tipos)
@@ -976,8 +977,8 @@ def productividad():
     ax4.set_ylabel('Qi')
     plt.title('Qi - Gasto inicial de ' +str(hidrocarburo)+' vs First Oil de '+str(input_campo))
     plt.legend(loc='upper right', 
-               fontsize='x-small')
-               #bbox_to_anchor=(1.25,1.0, 0.00, 0.00),ncol=1)
+               fontsize='x-small',
+               bbox_to_anchor=(1.25,1.0, 0.00, 0.00),ncol=1)
     plt.show()
     
     #markers = {"Lunch": "s", "Dinner": "X"}
@@ -1078,7 +1079,7 @@ def productividad():
     
     
     # PLOT CLASIFICACION DE POZOS
-    clasif=pd.unique(serie_todos.clasificacion)
+    clasif=pd.unique(serie_todos.trayectoria)
     clasificacion=pd.DataFrame(index=clasif)  
 
     for x in clasif:
@@ -1106,8 +1107,8 @@ def productividad():
 
         fig1, ax1 = plt.subplots(figsize=(15,8))  
         fff=resultados.fecha.min()
-        sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo since ' +str(fff.year), kde_kws = {'shade': True})
-        sns.distplot(resultados_muestra[hidrocarburo],hist=False, kde=True, label='Qo since First oil > '+str(input_fecha.year),kde_kws = {'shade': True})
+        sns.distplot(resultados[hidrocarburo],hist=False, kde=True, label='Qo since ' +str(fff.year), kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(resultados_muestra[hidrocarburo],hist=False, kde=True, label='Qo since First oil > '+str(input_fecha.year),kde_kws = {'shade': True,'bw':'silverman'})
         #plt.hist(resultados[hidrocarburo], alpha=0.6, label='Qo since ' +str(fff.year),density=True)
         #plt.hist(resultados_muestra[hidrocarburo], alpha=0.3, label='Qo since First oil > '+str(input_fecha.year),density=True)
         ax1.set_xlabel('Gasto Qo')
@@ -1117,8 +1118,8 @@ def productividad():
         plt.show
 
         fig2, ax2 = plt.subplots(figsize=(15,8))  
-        sns.distplot(resultados.Qi_hist,hist=False, kde=True, label='Qi since ' +str(fff.year), kde_kws = {'shade': True})
-        sns.distplot(resultados_muestra.Qi_desde,hist=False, kde=True, label='Qi since First oil > ' +str(input_fecha.year), kde_kws = {'shade': True})
+        sns.distplot(resultados.Qi_hist,hist=False, kde=True, label='Qi since ' +str(fff.year), kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(resultados_muestra.Qi_desde,hist=False, kde=True, label='Qi since First oil > ' +str(input_fecha.year), kde_kws = {'shade': True,'bw':'silverman'})
         #plt.hist(resultados.Qi_hist, alpha=0.6, label='Qi since ' +str(fff.year),density=True)
         #plt.hist(resultados_muestra.Qi_desde, alpha=0.3, label='Qi since First oil > ' +str(input_fecha.year),density=True)
         ax2.set_xlabel('Gasto inicial Qi')
@@ -1139,3 +1140,4 @@ def productividad():
     #display('Tiempo de procesamiento: ' +str(tac)+' segundos')
     
     return
+
