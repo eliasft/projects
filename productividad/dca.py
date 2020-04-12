@@ -1042,7 +1042,7 @@ def pozos_tipo():
     ax6.plot(perfil.alta_H,linestyle='dotted',color='green',alpha=0.5)
     ax6.fill_between(perfil.index,perfil.alta_L,perfil.alta_H,alpha=0.05,color='green')
     
-    ax6.legend(loc='best',fontsize='small')
+    ax6.legend(loc='upper right',fontsize='small')
     ax6.set_ylabel('Qo '+str(hidrocarburo))
     ax6.set_ylim(0)
     
@@ -1063,7 +1063,7 @@ def pozos_tipo():
     #ax7.plot(perfil.EUR_alta_H,linestyle='dotted',color='green',alpha=0.3)
     #ax7.fill_between(perfil.index,perfil.EUR_alta_L,perfil.EUR_alta_H,alpha=0.03,color='green')
     
-    ax7.legend(loc='best',fontsize='small')
+    ax7.legend(loc='upper right',fontsize='small')
     ax7.set_ylabel('EUR (MMb / MMMpc)')
     ax7.set_ylim(0)
 
@@ -1104,8 +1104,8 @@ def pozos_tipo():
    
     ax_alta.set_ylabel('EUR (MMb / MMMpc)')
      
-    plot_alta.legend(loc='best',fontsize='small')
-    ax_alta.legend(loc='best',fontsize='small')
+    plot_alta.legend(loc='upper right',fontsize='small')
+    ax_alta.legend(loc='upper right',fontsize='small')
     plot_alta.axes.set_xlim(0,len_perfil)
     plot_alta.axes.set_ylim(0)
 
@@ -1126,8 +1126,8 @@ def pozos_tipo():
    
     ax_media.set_ylabel('EUR (MMb / MMMpc)')
     
-    plot_media.legend(loc='best',fontsize='small')
-    ax_media.legend(loc='best',fontsize='small')
+    plot_media.legend(loc='upper right',fontsize='small')
+    ax_media.legend(loc='upper right',fontsize='small')
     plot_media.axes.set_xlim(0,len_perfil)
     plot_media.axes.set_ylim(0)
 
@@ -1149,7 +1149,7 @@ def pozos_tipo():
     ax_baja.set_ylabel('EUR (MMb / MMMpc)')
     
     plot_baja.legend(loc='upper right',fontsize='small')
-    ax_baja.legend(loc='best',fontsize='small')
+    ax_baja.legend(loc='upper right',fontsize='small')
     plot_baja.axes.set_xlim(0,len_perfil)
     plot_baja.axes.set_ylim(0)
 
