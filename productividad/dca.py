@@ -1269,7 +1269,6 @@ def plot_resultados(pozos):
         distribucion=pd.DataFrame()
         distribucion=tipos.tipo.value_counts()
 
-
         fig3 = plt.figure(figsize=(15, 15))
         fig3.suptitle('Status del campo '+str(input_campo),
                         fontsize=18,
@@ -1278,13 +1277,13 @@ def plot_resultados(pozos):
 
 
         grid3 = plt.GridSpec(3, 1, hspace=0.2, wspace=0.4)
-        plot_distribucion = fig3.add_subplot(grid3[0, 0])
-        plot_estado = fig3.add_subplot(grid3[1, 0],sharex=plot_distribucion)
-        plot_clasificacion = fig3.add_subplot(grid3[2, 0],sharex=plot_estado)
+        ax_distribucion = fig3.add_subplot(grid3[0, 0])
+        ax_estado = fig3.add_subplot(grid3[1, 0],sharex=ax_distribucion)
+        ax_clasificacion = fig3.add_subplot(grid3[2, 0],sharex=ax_estado)
 
 
-        plot_distribucion.title.set_text('Clasificacion por tipo')
-        plot_distribucion.barh(y=distribucion.keys(),
+        ax_distribucion.title.set_text('Clasificacion por tipo')
+        ax_distribucion.barh(y=distribucion.keys(),
                                 width=distribucion.values,
                                 color=['Blue','Green','Red'],
                                 alpha=0.5,
@@ -1299,8 +1298,8 @@ def plot_resultados(pozos):
         status=pd.DataFrame(index=estado.index,data=estado)
 
 
-        plot_estado.title.set_text('Estado actual')
-        plot_estado.barh(y=status.index,
+        ax_estado.title.set_text('Estado actual')
+        ax_estado.barh(y=status.index,
                          width=status.estado_actual)
 
 
@@ -1312,11 +1311,11 @@ def plot_resultados(pozos):
         #for x in clasif:
          #   clasificacion.loc[x,'pozos']=len(serie_todos[serie_todos.trayectoria == str(x)])
 
-        plot_clasificacion.title.set_text('Trayectoria')
-        plot_clasificacion.barh(y=clasificacion.index,
+        ax_clasificacion.title.set_text('Trayectoria')
+        ax_clasificacion.barh(y=clasificacion.index,
                                 width=clasificacion.trayectoria)
 
-        plot_clasificacion.set_xlabel('Numero de pozos')
+        ax_clasificacion.set_xlabel('Numero de pozos')
 
     return
 
