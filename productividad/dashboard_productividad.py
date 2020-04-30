@@ -219,18 +219,6 @@ tiempos.opts(
                       tools=['hover']),
     opts.Scatter(height=400, width=800, xaxis=True, yaxis=True, size=10,line_width=0.25, color='orange')).cols(1)
 
-plot, fmt = self_or_cls._validate(obj, fmt)
-
-        if isinstance(plot, Viewable):
-            from bokeh.resources import CDN, INLINE
-            if resources.lower() == 'cdn':
-            from bokeh.resources import CDN, INLINE, Resources
-            if isinstance(resources, Resources):
-                pass
-            elif resources.lower() == 'cdn':
-                resources = CDN
-            elif resources.lower() == 'inline':
-                resources = INLINE
 
 hv.save(tiempos, 'output_tiempos.html',backend='bokeh')
 
