@@ -11,3 +11,10 @@ import pandas as pd
 import plotly.express as px
 
 df = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_resumen.csv')
+
+dfx = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_campo.csv')
+
+dfx=dfx.groupby(by='pozo').mean()
+intervenciones=dfx.ano_de_perforacion.value_counts()
+intervenciones.index=pd.Index.astype(intervenciones.index,dtype='int64')
+intervenciones=intervenciones.sort_index(ascending=True)

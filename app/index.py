@@ -38,6 +38,8 @@ def render_content(tab):
        return tab5.layout
     elif tab == 'tab-6':
        return tab6.layout
+    #elif tab == 'tab-7':
+     #  return tab7.layout
 
 operators = [['ge ', '>='],
              ['le ', '<='],

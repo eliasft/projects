@@ -116,6 +116,7 @@ def carga_bd():
     global mx_bd
     global mx_reservas
     global mx_tiempos
+    global mx_campos
 
     tic=timeit.default_timer()
 
@@ -150,6 +151,9 @@ def carga_bd():
                           parse_dates=True,
                           keep_default_na=False)
 
+    mx_campos=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_campos.csv')
+
+
 
     toc=timeit.default_timer()
     tac= toc - tic #elapsed time in seconds
@@ -180,6 +184,7 @@ def inputs():
     global pozos_tipo1,pozos_tipo2,pozos_tipo3
     global regimen_fiscal, regalia_adicional, region_fiscal
     global lista_pozos
+    global info_campo
 
 
     ####################        SECCION DE INPUTS          #####################
@@ -278,12 +283,23 @@ def inputs():
         pozos = mx_bd.loc[filtro]
         lista_pozos=list(pd.unique(pozos.pozo))
 
-    ####################       INFORMACION COMPLEMENTARIA (TIEMPO + RESERVAS)      #####################
+    ####################       INFORMACION COMPLEMENTARIA    #####################
 
     pozos=pozos.merge(mx_tiempos[['pozo','tiempo_perforacion','dias_perforacion']], how='left',on='pozo')
 
     seleccion_reservas=mx_reservas.NOMBRE.str.match(pat=input_campo)
     info_reservas=mx_reservas.loc[seleccion_reservas]
+
+    seleccion_campo=mx_campos.NOMBRE.str.match(pat=input_campo)
+    info_campo=mx_campos[['NOMBRE',
+                          'ZONA',
+                          'ESTADO',
+                          'AREA',
+                          'ANO DE DESCUBRIMIENTO',
+                          'ASIGNACION',
+                          'OPERADOR',
+                          'VIGENCIA',
+                          'ESTATUS']].loc[seleccion_campo]
 
     ####################        VALIDACION DATOS DE POZOS        #####################
 
@@ -562,10 +578,10 @@ def analisis_dca(pozos):
         serie_produccion=serie_produccion.set_index('pozo')
 
         #Cálculo de la máxima producción inicial
-        qi=get_max_initial_production(serie_produccion, 500, hidrocarburo, 'fecha')
+        qi=get_max_initial_production(serie_produccion, 6, hidrocarburo, 'fecha')
 
-        qi_g=get_max_initial_production(serie_produccion, 500, gas, 'fecha')
-        qi_c=get_max_initial_production(serie_produccion, 500, condensado, 'fecha')
+        qi_g=get_max_initial_production(serie_produccion, 6, gas, 'fecha')
+        qi_c=get_max_initial_production(serie_produccion, 6, condensado, 'fecha')
 
         if qi_g == 0:
             qi_g = 0.00000000000000000000000000000000000000000001
@@ -661,6 +677,11 @@ def analisis_dca(pozos):
         serie_produccion.loc[:,'Gp_MMMpc']=(serie_produccion[gas].cumsum())*30/1_000
         serie_produccion.loc[:,'Cp_MMb']=(serie_produccion[condensado].cumsum())*30/1_000
         serie_produccion.loc[:,'Wp_MMb']=(serie_produccion[agua].cumsum())*30/1_000
+        
+        serie_produccion.loc[:,'RGA'] = (serie_produccion[gas]*1_000) / serie_produccion[hidrocarburo]
+        serie_produccion.loc[:,'corte_agua'] = serie_produccion[agua] / (serie_produccion.aceite_Mbd + serie_produccion.condensado_Mbd)
+        serie_produccion.loc[:,'Mbpced'] = serie_produccion.aceite_Mbd + (serie_produccion[gas]*(1/6))
+        serie_produccion.loc[:,'acum_BOE'] = serie_produccion.Mbpced.cumsum()*30/1_000
 
 
         seleccion_status=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
@@ -703,7 +724,11 @@ def analisis_dca(pozos):
              serie_produccion.Np_MMb.max(),
              serie_produccion.Gp_MMMpc.max(),
              serie_produccion.Cp_MMb.max(),
-             serie_produccion.Wp_MMb.max()]]
+             serie_produccion.Wp_MMb.max(),
+             serie_produccion.acum_BOE.max(),
+             serie_produccion.RGA.mean(),
+             serie_produccion.corte_agua.mean()
+             ]]
 
         resumen_pozos=[[pozo,
                          qi,
@@ -718,7 +743,11 @@ def analisis_dca(pozos):
                          serie_produccion.Np_MMb.max(),
                          serie_produccion.Gp_MMMpc.max(),
                          serie_produccion.Cp_MMb.max(),
-                         serie_produccion.Wp_MMb.max()]]
+                         serie_produccion.Wp_MMb.max(),
+                         serie_produccion.acum_BOE.max(),
+                         serie_produccion.RGA.mean(),
+                         serie_produccion.corte_agua.mean()
+                         ]]
 
 
         #Plot del Análisis de Declinación de Curvas (DCA)
@@ -778,7 +807,11 @@ def analisis_dca(pozos):
                                34:'Np',
                                35:'Gp',
                                36:'Cp',
-                               37:'Wp'})
+                               37:'Wp',
+                               38:'acum_BOE',
+                               39:'RGA',
+                               40:'corte_agua'
+                               })
 
     gasto=gasto.set_index('pozo')
 
@@ -795,7 +828,10 @@ def analisis_dca(pozos):
                                                10:'Np',
                                                11:'Gp',
                                                12:'Cp',
-                                               13:'Wp'})
+                                               13:'Wp',
+                                               14:'RGA',
+                                               15:'corte_agua'
+                                               })
 
     serie_resumen=serie_resumen.set_index('pozo')
 
@@ -875,9 +911,19 @@ def analisis_dca(pozos):
                                EUR_max,
                                produccion_mensual_media,
                                produccion_mensual_max,
+                               str(hidrocarburo),
+                               str(gas)),
                                Q_base,
                                G_base,
                                C_base,
+                               serie_produccion.RGA.quantile(0.50),
+                               serie_prouuccion.corte_agua.quantile(0.50),
+                               np.nan(),
+                               np.nan(),
+                               np.nan(),
+                               np.nan(),
+                               np.nan(),
+                               np.nan(),
                                Np, Gp, Cp, Wp, OOIP, FR_aceite, OGIP, FR_gas],
                          index=('Pozos perforados',
                                 'Pozos productores',
@@ -889,9 +935,19 @@ def analisis_dca(pozos):
                                 'EUR maxima (MMb)',
                                 'Produccion media mensual (Mbd)',
                                 'Pico de producción mensual (MMb)',
-                                'Produccion base de '+str(hidrocarburo),
-                                'Progduccion base de '+str(gas),
-                                'Produccion base de '+str(condensado),
+                                'Hidrocarburo principal',
+                                'Hidrocarburo secundario',
+                                'Produccion actual de '+str(hidrocarburo),
+                                'Progduccion actual de '+str(gas),
+                                'Produccion actual de '+str(condensado),
+                                'RGA pc/b',
+                                'Corte de agua %',
+                                'Gravedad API',
+                                'C1',
+                                'C2',
+                                'C3',
+                                'C4',
+                                'C5+',
                                 'Np','Gp','Cp','Wp','OOIP','FR Aceite', 'OGIP','FR Gas'))
     #display(resumen)
 
@@ -911,9 +967,9 @@ def analisis_dca(pozos):
             serie_desde=pozos_desde[pozos_desde.pozo==pozo]
             serie_desde=serie_desde.set_index('pozo')
 
-            qi_desde=get_max_initial_production(serie_desde, 500, hidrocarburo, 'fecha')
-            qi_g_desde=get_max_initial_production(serie_desde, 500, gas, 'fecha')
-            qi_c_desde=get_max_initial_production(serie_desde, 500, condensado, 'fecha')
+            qi_desde=get_max_initial_production(serie_desde, 6, hidrocarburo, 'fecha')
+            qi_g_desde=get_max_initial_production(serie_desde, 6, gas, 'fecha')
+            qi_c_desde=get_max_initial_production(serie_desde, 6, condensado, 'fecha')
 
             if qi_g_desde == 0:
                 qi_g_desde = 0.00000000000000000000000000000000000000000001
@@ -1342,7 +1398,7 @@ def analisis_dca_analogos():
         #serie_produccion['declinacion']=serie_produccion[hidrocarburo].pct_change(periods=1)
 
         #Cálculo de la máxima producción inicial
-        qi=get_max_initial_production(serie_produccion, 500, hidrocarburo, 'fecha')
+        qi=get_max_initial_production(serie_produccion, 6, hidrocarburo, 'fecha')
         #qi_g=get_max_initial_production(serie_produccion, 500, gas, 'fecha')
         #qi_c=get_max_initial_production(serie_produccion, 500, condensado, 'fecha')
 

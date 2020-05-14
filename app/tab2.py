@@ -36,12 +36,13 @@ def update_graph(direccional, profundidad):
     else:
         dff
 
-    trace1 = px.scatter(
+    trace1 = px.scatter_3d(
                         dff,
-                        x='profundidad_total',
+                        x='first_oil',
                         y='Qi_hist',
+                        z='profundidad_total',
                         color='tipo',
-                        size='mes_max',
+                        size='Qi_hist',
                         height=700,
     )
     return html.Div([

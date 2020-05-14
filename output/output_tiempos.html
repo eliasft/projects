@@ -1,0 +1,553 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+    
+      <meta charset="utf-8">
+      <title>Panel</title>
+      
+      
+        
+          
+        <style>
+            .widget-box {
+                	min-height: 20px;
+                	background-color: #f5f5f5;
+                	border: 1px solid #e3e3e3 !important;
+                	border-radius: 4px;
+                	-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+                	box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
+                	overflow-x: hidden;
+                	overflow-y: hidden;
+                }
+
+                .scrollable {
+                  overflow: scroll;
+                }
+
+                progress {
+                	appearance: none;
+                	-moz-appearance: none;
+                	-webkit-appearance: none;
+
+                	border: none;
+                	height: 20px;
+                	background-color: whiteSmoke;
+                	border-radius: 3px;
+                	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
+                	color: royalblue;
+                	position: relative;
+                	margin: 0 0 1.5em;
+                }
+
+                progress[value]::-webkit-progress-bar {
+                	background-color: whiteSmoke;
+                	border-radius: 3px;
+                	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
+                }
+
+                progress[value]::-webkit-progress-value {
+                	position: relative;
+
+                	background-size: 35px 20px, 100% 100%, 100% 100%;
+                	border-radius:3px;
+                }
+
+                progress.active:not([value])::before {
+                	background-position: 10%;
+                	animation-name: stripes;
+                	animation-duration: 3s;
+                	animation-timing-function: linear;
+                	animation-iteration-count: infinite;
+                }
+
+                progress[value]::-moz-progress-bar {
+                	background-size: 35px 20px, 100% 100%, 100% 100%;
+                	border-radius:3px;
+                }
+
+                progress:not([value])::-moz-progress-bar {
+                	border-radius:3px;
+                	background:
+                	linear-gradient(-45deg, transparent 33%, rgba(0, 0, 0, 0.2) 33%, rgba(0, 0, 0, 0.2) 66%, transparent 66%) left/2.5em 1.5em;
+
+                }
+
+                progress.active:not([value])::-moz-progress-bar {
+                	background-position: 10%;
+                	animation-name: stripes;
+                	animation-duration: 3s;
+                	animation-timing-function: linear;
+                	animation-iteration-count: infinite;
+                }
+
+                progress.active:not([value])::-webkit-progress-bar {
+                	background-position: 10%;
+                	animation-name: stripes;
+                	animation-duration: 3s;
+                	animation-timing-function: linear;
+                	animation-iteration-count: infinite;
+                }
+
+                progress.primary[value]::-webkit-progress-value { background-color: #007bff; }
+                progress.primary:not([value])::before { background-color: #007bff; }
+                progress.primary:not([value])::-webkit-progress-bar { background-color: #007bff; }
+                progress.primary::-moz-progress-bar { background-color: #007bff; }
+
+                progress.secondary[value]::-webkit-progress-value { background-color: #6c757d; }
+                progress.secondary:not([value])::before { background-color: #6c757d; }
+                progress.secondary:not([value])::-webkit-progress-bar { background-color: #6c757d; }
+                progress.secondary::-moz-progress-bar { background-color: #6c757d; }
+
+                progress.success[value]::-webkit-progress-value { background-color: #28a745; }
+                progress.success:not([value])::before { background-color: #28a745; }
+                progress.success:not([value])::-webkit-progress-bar { background-color: #28a745; }
+                progress.success::-moz-progress-bar { background-color: #28a745; }
+
+                progress.danger[value]::-webkit-progress-value { background-color: #dc3545; }
+                progress.danger:not([value])::before { background-color: #dc3545; }
+                progress.danger:not([value])::-webkit-progress-bar { background-color: #dc3545; }
+                progress.danger::-moz-progress-bar { background-color: #dc3545; }
+
+                progress.warning[value]::-webkit-progress-value { background-color: #ffc107; }
+                progress.warning:not([value])::before { background-color: #ffc107; }
+                progress.warning:not([value])::-webkit-progress-bar { background-color: #ffc107; }
+                progress.warning::-moz-progress-bar { background-color: #ffc107; }
+
+                progress.info[value]::-webkit-progress-value { background-color: #17a2b8; }
+                progress.info:not([value])::before { background-color: #17a2b8; }
+                progress.info:not([value])::-webkit-progress-bar { background-color: #17a2b8; }
+                progress.info::-moz-progress-bar { background-color: #17a2b8; }
+
+                progress.light[value]::-webkit-progress-value { background-color: #f8f9fa; }
+                progress.light:not([value])::before { background-color: #f8f9fa; }
+                progress.light:not([value])::-webkit-progress-bar { background-color: #f8f9fa; }
+                progress.light::-moz-progress-bar { background-color: #f8f9fa; }
+
+                progress.dark[value]::-webkit-progress-value { background-color: #343a40; }
+                progress.dark:not([value])::-webkit-progress-bar { background-color: #343a40; }
+                progress.dark:not([value])::before { background-color: #343a40; }
+                progress.dark::-moz-progress-bar { background-color: #343a40; }
+
+                progress:not([value])::-webkit-progress-bar {
+                	border-radius: 3px;
+                	background:
+                	linear-gradient(-45deg, transparent 33%, rgba(0, 0, 0, 0.2) 33%, rgba(0, 0, 0, 0.2) 66%, transparent 66%) left/2.5em 1.5em;
+                }
+                progress:not([value])::before {
+                	content:" ";
+                	position:absolute;
+                	height: 20px;
+                	top:0;
+                	left:0;
+                	right:0;
+                	bottom:0;
+                	border-radius: 3px;
+                	background:
+                	linear-gradient(-45deg, transparent 33%, rgba(0, 0, 0, 0.2) 33%, rgba(0, 0, 0, 0.2) 66%, transparent 66%) left/2.5em 1.5em;
+                }
+
+                @keyframes stripes {
+                  from {background-position: 0%}
+                  to {background-position: 100%}
+                }
+        </style>
+        <style>
+            .codehilite .hll { background-color: #ffffcc }
+                .codehilite  { background: #f8f8f8; }
+                .codehilite .c { color: #408080; font-style: italic } /* Comment */
+                .codehilite .err { border: 1px solid #FF0000 } /* Error */
+                .codehilite .k { color: #008000; font-weight: bold } /* Keyword */
+                .codehilite .o { color: #666666 } /* Operator */
+                .codehilite .ch { color: #408080; font-style: italic } /* Comment.Hashbang */
+                .codehilite .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+                .codehilite .cp { color: #BC7A00 } /* Comment.Preproc */
+                .codehilite .cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
+                .codehilite .c1 { color: #408080; font-style: italic } /* Comment.Single */
+                .codehilite .cs { color: #408080; font-style: italic } /* Comment.Special */
+                .codehilite .gd { color: #A00000 } /* Generic.Deleted */
+                .codehilite .ge { font-style: italic } /* Generic.Emph */
+                .codehilite .gr { color: #FF0000 } /* Generic.Error */
+                .codehilite .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+                .codehilite .gi { color: #00A000 } /* Generic.Inserted */
+                .codehilite .go { color: #888888 } /* Generic.Output */
+                .codehilite .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+                .codehilite .gs { font-weight: bold } /* Generic.Strong */
+                .codehilite .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+                .codehilite .gt { color: #0044DD } /* Generic.Traceback */
+                .codehilite .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+                .codehilite .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+                .codehilite .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+                .codehilite .kp { color: #008000 } /* Keyword.Pseudo */
+                .codehilite .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+                .codehilite .kt { color: #B00040 } /* Keyword.Type */
+                .codehilite .m { color: #666666 } /* Literal.Number */
+                .codehilite .s { color: #BA2121 } /* Literal.String */
+                .codehilite .na { color: #7D9029 } /* Name.Attribute */
+                .codehilite .nb { color: #008000 } /* Name.Builtin */
+                .codehilite .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+                .codehilite .no { color: #880000 } /* Name.Constant */
+                .codehilite .nd { color: #AA22FF } /* Name.Decorator */
+                .codehilite .ni { color: #999999; font-weight: bold } /* Name.Entity */
+                .codehilite .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+                .codehilite .nf { color: #0000FF } /* Name.Function */
+                .codehilite .nl { color: #A0A000 } /* Name.Label */
+                .codehilite .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+                .codehilite .nt { color: #008000; font-weight: bold } /* Name.Tag */
+                .codehilite .nv { color: #19177C } /* Name.Variable */
+                .codehilite .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+                .codehilite .w { color: #bbbbbb } /* Text.Whitespace */
+                .codehilite .mb { color: #666666 } /* Literal.Number.Bin */
+                .codehilite .mf { color: #666666 } /* Literal.Number.Float */
+                .codehilite .mh { color: #666666 } /* Literal.Number.Hex */
+                .codehilite .mi { color: #666666 } /* Literal.Number.Integer */
+                .codehilite .mo { color: #666666 } /* Literal.Number.Oct */
+                .codehilite .sa { color: #BA2121 } /* Literal.String.Affix */
+                .codehilite .sb { color: #BA2121 } /* Literal.String.Backtick */
+                .codehilite .sc { color: #BA2121 } /* Literal.String.Char */
+                .codehilite .dl { color: #BA2121 } /* Literal.String.Delimiter */
+                .codehilite .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+                .codehilite .s2 { color: #BA2121 } /* Literal.String.Double */
+                .codehilite .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+                .codehilite .sh { color: #BA2121 } /* Literal.String.Heredoc */
+                .codehilite .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+                .codehilite .sx { color: #008000 } /* Literal.String.Other */
+                .codehilite .sr { color: #BB6688 } /* Literal.String.Regex */
+                .codehilite .s1 { color: #BA2121 } /* Literal.String.Single */
+                .codehilite .ss { color: #19177C } /* Literal.String.Symbol */
+                .codehilite .bp { color: #008000 } /* Name.Builtin.Pseudo */
+                .codehilite .fm { color: #0000FF } /* Name.Function.Magic */
+                .codehilite .vc { color: #19177C } /* Name.Variable.Class */
+                .codehilite .vg { color: #19177C } /* Name.Variable.Global */
+                .codehilite .vi { color: #19177C } /* Name.Variable.Instance */
+                .codehilite .vm { color: #19177C } /* Name.Variable.Magic */
+                .codehilite .il { color: #666666 } /* Literal.Number.Integer.Long */
+
+                .markdown h1 { margin-block-start: 0.34em }
+                .markdown h2 { margin-block-start: 0.42em }
+                .markdown h3 { margin-block-start: 0.5em }
+                .markdown h4 { margin-block-start: 0.67em }
+                .markdown h5 { margin-block-start: 0.84em }
+                .markdown h6 { margin-block-start: 1.17em }
+                .markdown ul { padding-inline-start: 2em }
+                .markdown ol { padding-inline-start: 2em }
+                .markdown strong { font-weight: 600 }
+                .markdown a { color: -webkit-link }
+                .markdown a { color: -moz-hyperlinkText }
+
+        </style>
+        <style>
+            .json-formatter-row {
+                  font-family: monospace;
+                }
+                .json-formatter-row,
+                .json-formatter-row a,
+                .json-formatter-row a:hover {
+                  color: black;
+                  text-decoration: none;
+                }
+                .json-formatter-row .json-formatter-row {
+                  margin-left: 1rem;
+                }
+                .json-formatter-row .json-formatter-children.json-formatter-empty {
+                  opacity: 0.5;
+                  margin-left: 1rem;
+                }
+                .json-formatter-row .json-formatter-children.json-formatter-empty:after {
+                  display: none;
+                }
+                .json-formatter-row .json-formatter-children.json-formatter-empty.json-formatter-object:after {
+                  content: "No properties";
+                }
+                .json-formatter-row .json-formatter-children.json-formatter-empty.json-formatter-array:after {
+                  content: "[]";
+                }
+                .json-formatter-row .json-formatter-string,
+                .json-formatter-row .json-formatter-stringifiable {
+                  color: green;
+                  white-space: pre;
+                  word-wrap: break-word;
+                }
+                .json-formatter-row .json-formatter-number {
+                  color: blue;
+                }
+                .json-formatter-row .json-formatter-boolean {
+                  color: red;
+                }
+                .json-formatter-row .json-formatter-null {
+                  color: #855A00;
+                }
+                .json-formatter-row .json-formatter-undefined {
+                  color: #ca0b69;
+                }
+                .json-formatter-row .json-formatter-function {
+                  color: #FF20ED;
+                }
+                .json-formatter-row .json-formatter-date {
+                  background-color: rgba(0, 0, 0, 0.05);
+                }
+                .json-formatter-row .json-formatter-url {
+                  text-decoration: underline;
+                  color: blue;
+                  cursor: pointer;
+                }
+                .json-formatter-row .json-formatter-bracket {
+                  color: blue;
+                }
+                .json-formatter-row .json-formatter-key {
+                  color: #00008B;
+                  padding-right: 0.2rem;
+                }
+                .json-formatter-row .json-formatter-toggler-link {
+                  cursor: pointer;
+                }
+                .json-formatter-row .json-formatter-toggler {
+                  line-height: 1.2rem;
+                  font-size: 0.7rem;
+                  vertical-align: middle;
+                  opacity: 0.6;
+                  cursor: pointer;
+                  padding-right: 0.2rem;
+                }
+                .json-formatter-row .json-formatter-toggler:after {
+                  display: inline-block;
+                  transition: transform 100ms ease-in;
+                  content: "\25BA";
+                }
+                .json-formatter-row > a > .json-formatter-preview-text {
+                  opacity: 0;
+                  transition: opacity 0.15s ease-in;
+                  font-style: italic;
+                }
+                .json-formatter-row:hover > a > .json-formatter-preview-text {
+                  opacity: 0.6;
+                }
+                .json-formatter-row.json-formatter-open > .json-formatter-toggler-link .json-formatter-toggler:after {
+                  transform: rotate(90deg);
+                }
+                .json-formatter-row.json-formatter-open > .json-formatter-children:after {
+                  display: inline-block;
+                }
+                .json-formatter-row.json-formatter-open > a > .json-formatter-preview-text {
+                  display: none;
+                }
+                .json-formatter-row.json-formatter-open.json-formatter-empty:after {
+                  display: block;
+                }
+                .json-formatter-dark.json-formatter-row {
+                  font-family: monospace;
+                }
+                .json-formatter-dark.json-formatter-row,
+                .json-formatter-dark.json-formatter-row a,
+                .json-formatter-dark.json-formatter-row a:hover {
+                  color: white;
+                  text-decoration: none;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-row {
+                  margin-left: 1rem;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-children.json-formatter-empty {
+                  opacity: 0.5;
+                  margin-left: 1rem;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-children.json-formatter-empty:after {
+                  display: none;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-children.json-formatter-empty.json-formatter-object:after {
+                  content: "No properties";
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-children.json-formatter-empty.json-formatter-array:after {
+                  content: "[]";
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-string,
+                .json-formatter-dark.json-formatter-row .json-formatter-stringifiable {
+                  color: #31F031;
+                  white-space: pre;
+                  word-wrap: break-word;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-number {
+                  color: #66C2FF;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-boolean {
+                  color: #EC4242;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-null {
+                  color: #EEC97D;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-undefined {
+                  color: #ef8fbe;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-function {
+                  color: #FD48CB;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-date {
+                  background-color: rgba(255, 255, 255, 0.05);
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-url {
+                  text-decoration: underline;
+                  color: #027BFF;
+                  cursor: pointer;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-bracket {
+                  color: #9494FF;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-key {
+                  color: #23A0DB;
+                  padding-right: 0.2rem;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-toggler-link {
+                  cursor: pointer;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-toggler {
+                  line-height: 1.2rem;
+                  font-size: 0.7rem;
+                  vertical-align: middle;
+                  opacity: 0.6;
+                  cursor: pointer;
+                  padding-right: 0.2rem;
+                }
+                .json-formatter-dark.json-formatter-row .json-formatter-toggler:after {
+                  display: inline-block;
+                  transition: transform 100ms ease-in;
+                  content: "\25BA";
+                }
+                .json-formatter-dark.json-formatter-row > a > .json-formatter-preview-text {
+                  opacity: 0;
+                  transition: opacity 0.15s ease-in;
+                  font-style: italic;
+                }
+                .json-formatter-dark.json-formatter-row:hover > a > .json-formatter-preview-text {
+                  opacity: 0.6;
+                }
+                .json-formatter-dark.json-formatter-row.json-formatter-open > .json-formatter-toggler-link .json-formatter-toggler:after {
+                  transform: rotate(90deg);
+                }
+                .json-formatter-dark.json-formatter-row.json-formatter-open > .json-formatter-children:after {
+                  display: inline-block;
+                }
+                .json-formatter-dark.json-formatter-row.json-formatter-open > a > .json-formatter-preview-text {
+                  display: none;
+                }
+                .json-formatter-dark.json-formatter-row.json-formatter-open.json-formatter-empty:after {
+                  display: block;
+                }
+
+        </style>
+        <style>
+            table.panel-df {
+                    margin-left: auto;
+                    margin-right: auto;
+                    border: none;
+                    border-collapse: collapse;
+                    border-spacing: 0;
+                    color: black;
+                    font-size: 12px;
+                    table-layout: fixed;
+                    width: 100%;
+                }
+
+                .panel-df tr, th, td {
+                    text-align: right;
+                    vertical-align: middle;
+                    padding: 0.5em 0.5em !important;
+                    line-height: normal;
+                    white-space: normal;
+                    max-width: none;
+                    border: none;
+                }
+
+                .panel-df tbody {
+                    display: table-row-group;
+                    vertical-align: middle;
+                    border-color: inherit;
+                }
+
+                .panel-df tbody tr:nth-child(odd) {
+                    background: #f5f5f5;
+                }
+
+                .panel-df thead {
+                    border-bottom: 1px solid black;
+                    vertical-align: bottom;
+                }
+
+                .panel-df tr:hover {
+                    background: lightblue !important;
+                    cursor: pointer;
+                }
+
+        </style>
+        
+        
+          
+        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-2.0.1.min.js" integrity="sha384-JpP8FXbgAZLkfur7LiK3j9AGBhHNIvF742meBJrjO2ShJDhCG2I1uVvW+0DUtrmc" crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            Bokeh.set_log_level("info");
+        </script>
+        
+      
+      
+    
+  </head>
+  
+  
+  <body>
+    
+      
+        
+          
+          
+            
+              <div class="bk-root" id="4be16007-7c98-4033-82f4-2cf6460d57a9" data-root-id="162858"></div>
+            
+          
+        
+      
+      
+        <script type="application/json" id="163324">
+          {"842b11d7-6912-48cf-b5be-7632c4875a9d":{"roots":{"references":[{"attributes":{"children":[{"id":"162968"},{"id":"162966"}]},"id":"162969","type":"Column"},{"attributes":{},"id":"162884","type":"ResetTool"},{"attributes":{},"id":"162924","type":"SaveTool"},{"attributes":{"data_source":{"id":"162893"},"glyph":{"id":"162896"},"hover_glyph":null,"muted_glyph":{"id":"162898"},"nonselection_glyph":{"id":"162897"},"selection_glyph":null,"view":{"id":"162900"}},"id":"162899","type":"GlyphRenderer"},{"attributes":{"axis":{"id":"162920"},"dimension":1,"grid_line_color":null,"ticker":null},"id":"162923","type":"Grid"},{"attributes":{},"id":"162882","type":"WheelZoomTool"},{"attributes":{"children":[[{"id":"162863"},0,0],[{"id":"162907"},1,0]]},"id":"162966","type":"GridBox"},{"attributes":{"fill_alpha":{"value":0.2},"fill_color":{"value":"orange"},"line_alpha":{"value":0.2},"line_color":{"value":"orange"},"line_width":{"value":0.25},"size":{"units":"screen","value":10},"x":{"field":"dias_perforacion"},"y":{"field":"profundidad_total"}},"id":"162941","type":"Scatter"},{"attributes":{},"id":"162902","type":"BasicTickFormatter"},{"attributes":{"axis_label":"Density","bounds":"auto","formatter":{"id":"162904"},"major_label_orientation":"horizontal","ticker":{"id":"162877"}},"id":"162876","type":"LinearAxis"},{"attributes":{},"id":"162894","type":"Selection"},{"attributes":{"fill_alpha":0.5,"fill_color":"grey","line_alpha":0.5,"x":{"field":"x"},"y":{"field":"y"}},"id":"162897","type":"Patch"},{"attributes":{},"id":"162877","type":"BasicTicker"},{"attributes":{},"id":"162937","type":"Selection"},{"attributes":{"end":95.0,"reset_end":95.0,"reset_start":0,"tags":[[["dias_perforacion","dias_perforacion",null]]]},"id":"162860","type":"Range1d"},{"attributes":{"axis_label":"Profundidad total","bounds":"auto","formatter":{"id":"162947"},"major_label_orientation":"horizontal","ticker":{"id":"162921"}},"id":"162920","type":"LinearAxis"},{"attributes":{"fill_alpha":0.2,"fill_color":"grey","line_alpha":0.2,"x":{"field":"x"},"y":{"field":"y"}},"id":"162898","type":"Patch"},{"attributes":{},"id":"162880","type":"SaveTool"},{"attributes":{},"id":"162945","type":"BasicTickFormatter"},{"attributes":{"text":"Dias de perforacion - Funci\u00f3n de Probabilidad"},"id":"162864","type":"Title"},{"attributes":{},"id":"162904","type":"BasicTickFormatter"},{"attributes":{"axis_label":"Dias de perforacion","bounds":"auto","formatter":{"id":"162945"},"major_label_orientation":"horizontal","ticker":{"id":"162917"}},"id":"162916","type":"LinearAxis"},{"attributes":{"fill_alpha":0.5,"fill_color":"grey","line_alpha":0.5,"x":{"field":"x"},"y":{"field":"y"}},"id":"162896","type":"Patch"},{"attributes":{"bottom_units":"screen","fill_alpha":0.5,"fill_color":"lightgrey","left_units":"screen","level":"overlay","line_alpha":1.0,"line_color":"black","line_dash":[4,4],"line_width":2,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"162885","type":"BoxAnnotation"},{"attributes":{},"id":"162925","type":"PanTool"},{"attributes":{"toolbars":[{"id":"162886"},{"id":"162930"}],"tools":[{"id":"162862"},{"id":"162880"},{"id":"162881"},{"id":"162882"},{"id":"162883"},{"id":"162884"},{"id":"162924"},{"id":"162925"},{"id":"162926"},{"id":"162927"},{"id":"162928"}]},"id":"162967","type":"ProxyToolbar"},{"attributes":{"children":[{"id":"162859"},{"id":"162969"},{"id":"163098"}],"margin":[0,0,0,0],"name":"Row274794","tags":["embedded"]},"id":"162858","type":"Row"},{"attributes":{},"id":"162881","type":"PanTool"},{"attributes":{},"id":"162926","type":"WheelZoomTool"},{"attributes":{"data_source":{"id":"162936"},"glyph":{"id":"162939"},"hover_glyph":null,"muted_glyph":{"id":"162941"},"nonselection_glyph":{"id":"162940"},"selection_glyph":null,"view":{"id":"162943"}},"id":"162942","type":"GlyphRenderer"},{"attributes":{"overlay":{"id":"162929"}},"id":"162927","type":"BoxZoomTool"},{"attributes":{},"id":"162962","type":"UnionRenderers"},{"attributes":{"axis":{"id":"162916"},"grid_line_color":null,"ticker":null},"id":"162919","type":"Grid"},{"attributes":{"end":99.25,"reset_end":99.25,"reset_start":5.75,"start":5.75,"tags":[[["dias_perforacion","Dias de perforacion",null]]]},"id":"162905","type":"Range1d"},{"attributes":{"source":{"id":"162936"}},"id":"162943","type":"CDSView"},{"attributes":{"overlay":{"id":"162885"}},"id":"162883","type":"BoxZoomTool"},{"attributes":{},"id":"162912","type":"LinearScale"},{"attributes":{"margin":[5,5,5,5],"name":"HSpacer274799","sizing_mode":"stretch_width"},"id":"163098","type":"Spacer"},{"attributes":{"data":{"x":{"__ndarray__":"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","dtype":"float64","shape":[200]},"y":{"__ndarray__":"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","dtype":"float64","shape":[200]}},"selected":{"id":"162894"},"selection_policy":{"id":"162953"}},"id":"162893","type":"ColumnDataSource"},{"attributes":{"fill_color":{"value":"orange"},"line_color":{"value":"orange"},"line_width":{"value":0.25},"size":{"units":"screen","value":10},"x":{"field":"dias_perforacion"},"y":{"field":"profundidad_total"}},"id":"162939","type":"Scatter"},{"attributes":{"axis":{"id":"162872"},"grid_line_color":null,"ticker":null},"id":"162875","type":"Grid"},{"attributes":{},"id":"162914","type":"LinearScale"},{"attributes":{},"id":"162953","type":"UnionRenderers"},{"attributes":{"axis_label":"Dias de Perforacion","bounds":"auto","formatter":{"id":"162902"},"major_label_orientation":"horizontal","ticker":{"id":"162873"}},"id":"162872","type":"LinearAxis"},{"attributes":{},"id":"162917","type":"BasicTicker"},{"attributes":{},"id":"162873","type":"BasicTicker"},{"attributes":{"fill_alpha":{"value":0.1},"fill_color":{"value":"orange"},"line_alpha":{"value":0.1},"line_color":{"value":"orange"},"line_width":{"value":0.25},"size":{"units":"screen","value":10},"x":{"field":"dias_perforacion"},"y":{"field":"profundidad_total"}},"id":"162940","type":"Scatter"},{"attributes":{},"id":"162928","type":"ResetTool"},{"attributes":{"end":0.04241275839067026,"reset_end":0.04241275839067026,"reset_start":0.0,"tags":[[["dias_perforacion_density","Density",null]]]},"id":"162861","type":"Range1d"},{"attributes":{},"id":"162921","type":"BasicTicker"},{"attributes":{"axis":{"id":"162876"},"dimension":1,"grid_line_color":null,"ticker":null},"id":"162879","type":"Grid"},{"attributes":{},"id":"162868","type":"LinearScale"},{"attributes":{"end":3478.2,"reset_end":3478.2,"reset_start":1567.8,"start":1567.8,"tags":[[["profundidad_total","Profundidad total",null]]]},"id":"162906","type":"Range1d"},{"attributes":{"bottom_units":"screen","fill_alpha":0.5,"fill_color":"lightgrey","left_units":"screen","level":"overlay","line_alpha":1.0,"line_color":"black","line_dash":[4,4],"line_width":2,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"162929","type":"BoxAnnotation"},{"attributes":{"align":null,"below":[{"id":"162916"}],"center":[{"id":"162919"},{"id":"162923"}],"left":[{"id":"162920"}],"margin":null,"min_border_bottom":10,"min_border_left":10,"min_border_right":10,"min_border_top":10,"plot_height":400,"plot_width":800,"renderers":[{"id":"162942"}],"sizing_mode":"fixed","title":{"id":"162908"},"toolbar":{"id":"162930"},"toolbar_location":null,"x_range":{"id":"162905"},"x_scale":{"id":"162912"},"y_range":{"id":"162906"},"y_scale":{"id":"162914"}},"id":"162907","subtype":"Figure","type":"Plot"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"162862"},{"id":"162880"},{"id":"162881"},{"id":"162882"},{"id":"162883"},{"id":"162884"}]},"id":"162886","type":"Toolbar"},{"attributes":{},"id":"162870","type":"LinearScale"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"162924"},{"id":"162925"},{"id":"162926"},{"id":"162927"},{"id":"162928"}]},"id":"162930","type":"Toolbar"},{"attributes":{"text":"Dias de perforacion vs Profundidad total"},"id":"162908","type":"Title"},{"attributes":{},"id":"162947","type":"BasicTickFormatter"},{"attributes":{"callback":null,"renderers":[{"id":"162899"}],"tags":["hv_created"],"tooltips":[["dias_perforacion","@{dias_perforacion}"],["Density","@{dias_perforacion_density}"]]},"id":"162862","type":"HoverTool"},{"attributes":{"source":{"id":"162893"}},"id":"162900","type":"CDSView"},{"attributes":{"data":{"dias_perforacion":{"__ndarray__":"AAAAAAAANUAAAAAAAAAzQAAAAAAAADhAAAAAAAAAOEAAAAAAAAA3QAAAAAAAgElAAAAAAAAAM0AAAAAAAAA3QAAAAAAAADpAAAAAAACAQEAAAAAAAAA2QAAAAAAAAEVAAAAAAAAANUAAAAAAAAAxQAAAAAAAADNAAAAAAAAAOUAAAAAAAAAxQAAAAAAAAD5AAAAAAAAAM0AAAAAAAAA5QAAAAAAAADlAAAAAAACAT0AAAAAAAAAxQAAAAAAAADBAAAAAAAAAMUAAAAAAAAA8QAAAAAAAADdAAAAAAAAAOkAAAAAAAABOQAAAAAAAwFdAAAAAAAAAOUAAAAAAAAAwQAAAAAAAAC5AAAAAAAAAN0AAAAAAAAAyQAAAAAAAAPh/AAAAAAAAPUAAAAAAAAA1QAAAAAAAAChAAAAAAAAAKkAAAAAAAAAkQAAAAAAAADdA","dtype":"float64","shape":[42]},"profundidad_total":{"__ndarray__":"AAAAAABAn0AAAAAAAHKgQAAAAAAAXJ9AAAAAAABAn0AAAAAAAHieQAAAAAAAcKdAAAAAAAB4nkAAAAAAAHieQAAAAAAABKBAAAAAAAAwoUAAAAAAAECfQAAAAAAARKdAAAAAAABAn0AAAAAAANCbQAAAAAAAQJ9AAAAAAAB4nkAAAAAAALCdQAAAAAAABKBAAAAAAABAn0AAAAAAABCfQAAAAAAA0KFAAAAAAABwnkAAAAAAAECfQAAAAAAAsJxAAAAAAABooEAAAAAAAPihQAAAAAAAQJ9AAAAAAABUoEAAAAAAAKikQAAAAAAA7qlAAAAAAABooEAAAAAAAMCcQAAAAAAAeJ5AAAAAAACom0AAAAAAAICcQAAAAAAACJxAAAAAAAD8mkAAAAAAAIScQAAAAAAAgJtAAAAAAAA4m0AAAAAAACicQAAAAAAASJxA","dtype":"float64","shape":[42]}},"selected":{"id":"162937"},"selection_policy":{"id":"162962"}},"id":"162936","type":"ColumnDataSource"},{"attributes":{"toolbar":{"id":"162967"},"toolbar_location":"above"},"id":"162968","type":"ToolbarBox"},{"attributes":{"margin":[5,5,5,5],"name":"HSpacer274798","sizing_mode":"stretch_width"},"id":"162859","type":"Spacer"},{"attributes":{"align":null,"below":[{"id":"162872"}],"center":[{"id":"162875"},{"id":"162879"}],"left":[{"id":"162876"}],"margin":null,"min_border_bottom":10,"min_border_left":10,"min_border_right":10,"min_border_top":10,"plot_height":400,"plot_width":800,"renderers":[{"id":"162899"}],"sizing_mode":"fixed","title":{"id":"162864"},"toolbar":{"id":"162886"},"toolbar_location":null,"x_range":{"id":"162860"},"x_scale":{"id":"162868"},"y_range":{"id":"162861"},"y_scale":{"id":"162870"}},"id":"162863","subtype":"Figure","type":"Plot"}],"root_ids":["162858"]},"title":"Bokeh Application","version":"2.0.1"}}
+        </script>
+        <script type="text/javascript">
+          (function() {
+            var fn = function() {
+              Bokeh.safely(function() {
+                (function(root) {
+                  function embed_document(root) {
+                    
+                  var docs_json = document.getElementById('163324').textContent;
+                  var render_items = [{"docid":"842b11d7-6912-48cf-b5be-7632c4875a9d","root_ids":["162858"],"roots":{"162858":"4be16007-7c98-4033-82f4-2cf6460d57a9"}}];
+                  root.Bokeh.embed.embed_items(docs_json, render_items);
+                
+                  }
+                  if (root.Bokeh !== undefined) {
+                    embed_document(root);
+                  } else {
+                    var attempts = 0;
+                    var timer = setInterval(function(root) {
+                      if (root.Bokeh !== undefined) {
+                        clearInterval(timer);
+                        embed_document(root);
+                      } else {
+                        attempts++;
+                        if (attempts > 100) {
+                          clearInterval(timer);
+                          console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                        }
+                      }
+                    }, 10, root)
+                  }
+                })(window);
+              });
+            };
+            if (document.readyState != "loading") fn();
+            else document.addEventListener("DOMContentLoaded", fn);
+          })();
+        </script>
+    
+  </body>
+  
+</html>

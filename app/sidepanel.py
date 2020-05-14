@@ -54,6 +54,7 @@ layout = html.Div([
                     dcc.Tab(label='Tabla', value='tab-4'),
                     dcc.Tab(label='Dias de perforacion', value='tab-5'),
                     dcc.Tab(label='Distribucion', value='tab-6'),
+                    #dcc.Tab(label='Distribucion', value='tab-7'),
                 ])
             , html.Div(id='tabs-content')
         ]), width=9)])
