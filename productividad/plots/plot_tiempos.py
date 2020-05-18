@@ -24,7 +24,7 @@ sns.distplot(serie_resumen.dias_perforacion,
              label='Dias Perforacion',
              kde_kws = {'shade': True,
                         #'cumulative':True,
-                        'bw':'silverman'})
+                        'bw':'scott'})
 ax1.set_xlabel('Dias Perforacion')
 ax1.set_ylabel('Probabilidad')
 plt.title('Dias de perforacion por pozo en el campo ' +str(input_campo),

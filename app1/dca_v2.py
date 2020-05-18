@@ -256,14 +256,14 @@ def inputs():
 
     pozos=pd.DataFrame()
 
-    seleccion_pozo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
+    seleccion_pozo=mx_bd.pozo.str.match(pat=input_campo,na=False)
     seleccion_campo=mx_bd.campo.str.match(pat=input_campo, na=False)
     seleccion_contrato=mx_bd.contrato.str.contains(pat=input_campo,regex=True, na=False)
 
     if input_bulk == '':
 
 
-        pozos=mx_bd.loc[seleccion_campo | seleccion_pozo | seleccion_contrato]
+        pozos=mx_bd.loc[seleccion_pozo | seleccion_campo | seleccion_contrato]
         lista_pozos=list(pd.unique(pozos.pozo))
 
     else:
@@ -600,11 +600,11 @@ def analisis_dca(pozos):
 
         #Ajuste Exponencial
         popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'],
-                                    serie_produccion[hidrocarburo],bounds=(0, [qi,20]))
+                                    serie_produccion[hidrocarburo],bounds=(0, [qi,10]))
 
 
         popt_exp_g, pcov_exp_g=curve_fit(exponencial, serie_produccion['mes'],
-                                     serie_produccion[gas],bounds=(0, [qi_g,30]))
+                                     serie_produccion[gas],bounds=(0, [qi_g,10]))
 
         #print('Exponential Fit Curve-fitted Variables: qi='+str(popt_exp[0])+', di='+str(popt_exp[1]))
 
@@ -613,7 +613,7 @@ def analisis_dca(pozos):
                                      serie_produccion[hidrocarburo],bounds=(0, [qi,1,20]))
 
         popt_hyp_g, pcov_hyp_g=curve_fit(hiperbolica, serie_produccion['mes'],
-                                     serie_produccion[gas],bounds=(0, [qi_g,1,30]))
+                                     serie_produccion[gas],bounds=(0, [qi_g,1,10]))
 
         popt_hyp_c, pcov_hyp_c=curve_fit(hiperbolica, serie_produccion['mes'],
                                      serie_produccion[condensado],bounds=(0.0, [qi_c,1,20]))
@@ -625,7 +625,7 @@ def analisis_dca(pozos):
                                      serie_produccion[hidrocarburo],bounds=(0, [qi,20]))
 
         popt_harm_g, pcov_harm_g=curve_fit(harmonica, serie_produccion['mes'],
-                                     serie_produccion[gas],bounds=(0, [qi_g,30]))
+                                     serie_produccion[gas],bounds=(0, [qi_g,10]))
 
         #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
 
@@ -687,7 +687,7 @@ def analisis_dca(pozos):
 
         seleccion_status=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
         seleccion_base=serie_produccion[(serie_produccion.fecha == serie_produccion.fecha.max()) & (serie_produccion.fecha >= '2020-01-01')]
-
+        
         Qi=[[pozo,
              qi,
              popt_hyp[0],
@@ -703,11 +703,11 @@ def analisis_dca(pozos):
              popt_exp[1],
              perr_exp[0],
              perr_exp[1],
-             float(seleccion_status.at[pozo,hidrocarburo]),
+             str(hidrocarburo),
              serie_produccion.fecha.max(),
              serie_produccion.loc[:,'mes'].max(),
-             float(seleccion_status.at[pozo,'profundidad_total']),
-             str(seleccion_status.at[pozo,'trayectoria']),
+             seleccion_status.at[pozo,'profundidad_total'],
+             seleccion_status.at[pozo,'trayectoria'],
              seleccion_status.at[pozo,'first_oil'],
              popt_hyp_g[0],
              popt_hyp_g[1],
@@ -715,7 +715,7 @@ def analisis_dca(pozos):
              popt_hyp_c[0],
              popt_hyp_c[1],
              popt_hyp_c[2],
-             str(seleccion_status.at[pozo,'estado_actual']),
+             seleccion_status.at[pozo,'estado_actual'],
              serie_produccion.residual_exponencial.sum(),
              serie_produccion.residual_hiperbolica.sum(),
              serie_produccion.residual_harmonica.sum(),
@@ -733,14 +733,14 @@ def analisis_dca(pozos):
 
         resumen_pozos=[[pozo,
                          qi,
-                         float(seleccion_status.at[pozo,hidrocarburo]),
+                         str(hidrocarburo),
                          serie_produccion.fecha.max(),
                          serie_produccion.loc[:,'mes'].max(),
-                         float(seleccion_status.at[pozo,'profundidad_total']),
-                         str(seleccion_status.at[pozo,'trayectoria']),
+                         seleccion_status.at[pozo,'profundidad_total'],
+                         seleccion_status.at[pozo,'trayectoria'],
                          seleccion_status.at[pozo,'first_oil'],
-                         str(seleccion_status.at[pozo,'estado_actual']),
-                         float(seleccion_status.at[pozo,'dias_perforacion']),
+                         seleccion_status.at[pozo,'estado_actual'],
+                         seleccion_status.at[pozo,'dias_perforacion'],
                          serie_produccion.Np_MMb.max(),
                          serie_produccion.Gp_MMMpc.max(),
                          serie_produccion.Cp_MMb.max(),
@@ -1775,10 +1775,10 @@ def plot_resultados(pozos):
 
     #Distribucion del gasto historico vs pronosticado
     fig2, ax2 = plt.subplots(figsize=(15,8))
-    sns.distplot(serie_campo[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True,'bw':'silverman'})
-    sns.distplot(serie_campo.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True,'bw':'silverman'})
-    sns.distplot(serie_campo.harmonica,hist=False, kde=True, label='Harmonic Predicted',  kde_kws = {'shade': True,'bw':'silverman'})
-    sns.distplot(serie_campo.exponencial,hist=False, kde=True, label='Exponential Predicted', kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(serie_campo[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True,'bw':'scott'})
+    sns.distplot(serie_campo.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True,'bw':'scott'})
+    sns.distplot(serie_campo.harmonica,hist=False, kde=True, label='Harmonic Predicted',  kde_kws = {'shade': True,'bw':'scott'})
+    sns.distplot(serie_campo.exponencial,hist=False, kde=True, label='Exponential Predicted', kde_kws = {'shade': True,'bw':'scott'})
     #plt.hist( alpha=0.5, label='Qo historico',density=True)
     #plt.hist(serie_campo.hiperbolica, alpha=0.3, label='Hyperbolic Predicted',density=True)#,cumulative=True)
     #plt.hist(serie_campo.harmonica, alpha=0.3, label='Harmonic Predicted',density=True)
@@ -1795,10 +1795,10 @@ def plot_resultados(pozos):
     if hidrocarburo == 'aceite_Mbd':
 
         fig2a, ax2a = plt.subplots(figsize=(15,8))
-        sns.distplot(serie_campo[gas], hist=False, kde=True,label='Qg historico', kde_kws = {'shade': True,'bw':'silverman'})
-        sns.distplot(serie_campo.gas_hiperbolica, hist=False, kde=True,label='Hyperbolic Gas', kde_kws = {'shade': True,'bw':'silverman'})
-        sns.distplot(serie_campo.gas_harmonica, hist=False, kde=True,label='Harmonic Gas', kde_kws = {'shade': True,'bw':'silverman'})
-        sns.distplot(serie_campo.gas_exponencial, hist=False, kde=True,label='Exponential Gas', kde_kws = {'shade': True,'bw':'silverman'})
+        sns.distplot(serie_campo[gas], hist=False, kde=True,label='Qg historico', kde_kws = {'shade': True,'bw':'scott'})
+        sns.distplot(serie_campo.gas_hiperbolica, hist=False, kde=True,label='Hyperbolic Gas', kde_kws = {'shade': True,'bw':'scott'})
+        sns.distplot(serie_campo.gas_harmonica, hist=False, kde=True,label='Harmonic Gas', kde_kws = {'shade': True,'bw':'scott'})
+        sns.distplot(serie_campo.gas_exponencial, hist=False, kde=True,label='Exponential Gas', kde_kws = {'shade': True,'bw':'scott'})
         #plt.hist(serie_campo[gas], alpha=0.5, label='Qg historico',density=True)
         #plt.hist(serie_campo.gas_hiperbolica, alpha=0.5, label='Hyperbolic Gas',density=True)#,cumulative=True)
         #plt.hist(serie_campo.gas_harmonica, alpha=0.5, label='Harmonic Gas',density=True)
@@ -1887,7 +1887,7 @@ def plot_tiempos():
                  label='Dias Perforacion',
                  kde_kws = {'shade': True,
                             #'cumulative':True,
-                            'bw':'silverman'})
+                            'bw':'scott'})
     ax1.set_xlabel('Dias Perforacion')
     ax1.set_ylabel('Probabilidad')
     plt.title('Dias de perforacion por pozo en el campo ' +str(input_campo),
@@ -1938,8 +1938,8 @@ def plot_muestra():
 
     fig1, ax1 = plt.subplots(figsize=(15,8))
     fff=serie_campo.fecha.min()
-    sns.distplot(serie_campo[hidrocarburo],hist=False, kde=True, label='Qo since ' +str(fff.year), kde_kws = {'shade': True,'bw':'silverman'})
-    sns.distplot(serie_muestra[hidrocarburo],hist=False, kde=True, label='Qo since First oil > '+str(fecha_muestra.year),kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(serie_campo[hidrocarburo],hist=False, kde=True, label='Qo since ' +str(fff.year), kde_kws = {'shade': True,'bw':'scott'})
+    sns.distplot(serie_muestra[hidrocarburo],hist=False, kde=True, label='Qo since First oil > '+str(fecha_muestra.year),kde_kws = {'shade': True,'bw':'scott'})
     #plt.hist(serie_campo[hidrocarburo], alpha=0.6, label='Qo since ' +str(fff.year),density=True)
     #plt.hist(serie_muestra[hidrocarburo], alpha=0.3, label='Qo since First oil > '+str(input_fecha.year),density=True)
     ax1.set_xlabel('Gasto Qo')
@@ -1951,8 +1951,8 @@ def plot_muestra():
     ############# Gasto inicial Qi
 
     fig2, ax2 = plt.subplots(figsize=(15,8))
-    sns.distplot(serie_campo.Qi_hist,hist=False, kde=True, label='Qi since ' +str(fff.year), kde_kws = {'shade': True,'bw':'silverman'})
-    sns.distplot(serie_muestra.Qi_desde,hist=False, kde=True, label='Qi since First oil > ' +str(fecha_muestra.year), kde_kws = {'shade': True,'bw':'silverman'})
+    sns.distplot(serie_campo.Qi_hist,hist=False, kde=True, label='Qi since ' +str(fff.year), kde_kws = {'shade': True,'bw':'scott'})
+    sns.distplot(serie_muestra.Qi_desde,hist=False, kde=True, label='Qi since First oil > ' +str(fecha_muestra.year), kde_kws = {'shade': True,'bw':'scott'})
     #plt.hist(serie_campo.Qi_hist, alpha=0.6, label='Qi since ' +str(fff.year),density=True)
     #plt.hist(serie_muestra.Qi_desde, alpha=0.3, label='Qi since First oil > ' +str(input_fecha.year),density=True)
     ax2.set_xlabel('Gasto inicial Qi')
@@ -2079,9 +2079,9 @@ def plot_analogos():
     fig2, ax2 = plt.subplots(figsize=(15,8))
     sns.distplot(gasto.Qi_hist, hist=False, kde=True,label=input_campo,
                  #hist_kws = {'alpha':0.1},
-                 kde_kws = {'shade': True, 'bw':'silverman'})
+                 kde_kws = {'shade': True, 'bw':'scott'})
     sns.distplot(df_filtrado.Qi_hist, hist=False, kde=True,label='Analogos',
-                 kde_kws = {'shade': True, 'bw':'silverman'})
+                 kde_kws = {'shade': True, 'bw':'scott'})
     ax2.set_xlabel(hidrocarburo)
     ax2.set_ylabel('Probabilidad')
     plt.title('Gasto inicial Qi | Analogos | ' +str(input_campo))
@@ -2089,8 +2089,8 @@ def plot_analogos():
 
     ############# PLOT Qo ANALOGOS ###########
     fig3, ax3 = plt.subplots(figsize=(15,8))
-    sns.distplot(serie_campo[hidrocarburo], hist=False, kde=True,label=input_campo, kde_kws = {'shade': True, 'bw':'silverman'})
-    sns.distplot(dfx[hidrocarburo], hist=False, kde=True,label='Analogos', kde_kws = {'shade': True, 'bw':'silverman'})
+    sns.distplot(serie_campo[hidrocarburo], hist=False, kde=True,label=input_campo, kde_kws = {'shade': True, 'bw':'scott'})
+    sns.distplot(dfx[hidrocarburo], hist=False, kde=True,label='Analogos', kde_kws = {'shade': True, 'bw':'scott'})
     ax3.set_xlabel(hidrocarburo)
     ax3.set_ylabel('Probabilidad')
     plt.title('Gasto mensual | Analogos | ' +str(input_campo))

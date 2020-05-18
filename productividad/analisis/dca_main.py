@@ -228,32 +228,32 @@ for pozo in unique_well_list:
 
     #Ajuste Exponencial
     popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'],
-                                serie_produccion[hidrocarburo],bounds=(0, [qi,20]))
+                                serie_produccion[hidrocarburo],bounds=(0, [qi,10]))
 
 
     popt_exp_g, pcov_exp_g=curve_fit(exponencial, serie_produccion['mes'],
-                                 serie_produccion[gas],bounds=(0, [qi_g,30]))
+                                 serie_produccion[gas],bounds=(0, [qi_g,10]))
 
     #print('Exponential Fit Curve-fitted Variables: qi='+str(popt_exp[0])+', di='+str(popt_exp[1]))
 
     #Ajuste Hiperbolico
     popt_hyp, pcov_hyp=curve_fit(hiperbolica, serie_produccion['mes'],
-                                 serie_produccion[hidrocarburo],bounds=(0, [qi,1,20]))
+                                 serie_produccion[hidrocarburo],bounds=(0, [qi,1,10]))
 
     popt_hyp_g, pcov_hyp_g=curve_fit(hiperbolica, serie_produccion['mes'],
-                                 serie_produccion[gas],bounds=(0, [qi_g,1,30]))
+                                 serie_produccion[gas],bounds=(0, [qi_g,1,10]))
 
     popt_hyp_c, pcov_hyp_c=curve_fit(hiperbolica, serie_produccion['mes'],
-                                 serie_produccion[condensado],bounds=(0.0, [qi_c,1,20]))
+                                 serie_produccion[condensado],bounds=(0.0, [qi_c,1,10]))
 
     #print('Hyperbolic Fit Curve-fitted Variables: qi='+str(popt_hyp[0])+', b='+str(popt_hyp[1])+', di='+str(popt_hyp[2]))
 
     #Ajuste Harmonico
     popt_harm, pcov_harm=curve_fit(harmonica, serie_produccion['mes'],
-                                 serie_produccion[hidrocarburo],bounds=(0, [qi,20]))
+                                 serie_produccion[hidrocarburo],bounds=(0, [qi,10]))
 
     popt_harm_g, pcov_harm_g=curve_fit(harmonica, serie_produccion['mes'],
-                                 serie_produccion[gas],bounds=(0, [qi_g,30]))
+                                 serie_produccion[gas],bounds=(0, [qi_g,10]))
 
     #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
 
@@ -331,7 +331,7 @@ for pozo in unique_well_list:
          popt_exp[1],
          perr_exp[0],
          perr_exp[1],
-         float(seleccion_status.at[pozo,hidrocarburo]),
+         str(hidrocarburo),
          serie_produccion.fecha.max(),
          serie_produccion.loc[:,'mes'].max(),
          float(seleccion_status.at[pozo,'profundidad_total']),
@@ -510,7 +510,7 @@ produccion_mensual['produccion_mensual_campo_Mbd']=pozos.groupby(by=['fecha'])[h
 produccion_mensual=produccion_mensual.sort_values(by='produccion_mensual_campo_Mbd',ascending=False)
 
 fecha_pico=produccion_mensual.max()
-#display(produccion_mensual.head(1))
+#print(produccion_mensual.head(1))
 
 if float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'].sum()) > Np:
     Np = float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'].sum())
@@ -582,7 +582,7 @@ resumen=pd.Series(data=[pozos_perforados,
                             'Np','Gp','Cp','Wp','Gas Equivalente','OOIP','FR Aceite', 'OGIP','FR Gas',
                             )
                      )
-#display(resumen)
+#print(resumen)
 
 
 #################### SERIE MUESTRA (since predetermined date)

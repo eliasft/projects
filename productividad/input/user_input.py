@@ -59,7 +59,7 @@ if input_plots == str(''):
 
 pozos=pd.DataFrame()
 
-seleccion_pozo=mx_bd.pozo.str.contains(pat=input_campo,regex=True)
+seleccion_pozo=mx_bd.pozo.str.match(pat=input_campo,na=False)
 seleccion_campo=mx_bd.campo.str.match(pat=input_campo, na=False)
 seleccion_contrato=mx_bd.contrato.str.contains(pat=input_campo,regex=True, na=False)
 

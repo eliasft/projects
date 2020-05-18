@@ -23,8 +23,8 @@ df_filtrado=pd.DataFrame()
 df_filtrado=gasto_analogos[(gasto_analogos.di_hyp >= gasto.di_hyp.quantile(.30)) & (gasto_analogos.Qi_hist <= gasto.Qi_hist.quantile(0.80))]
 df_filtrado=df_filtrado.sort_values('Qi_hist',ascending=False)
 unique_filtro=pd.unique(df_filtrado.campo)
-display('Número de campos muestra para ' +str(input_campo)+': '+str(len(unique_analogos)))
-display('Numero de campos analogos: '+str(len(unique_filtro)))
+print('Número de campos muestra para ' +str(input_campo)+': '+str(len(unique_analogos)))
+print('Numero de campos analogos: '+str(len(unique_filtro)))
 
 fig, ax = plt.subplots(figsize=(15,10))
 
@@ -36,7 +36,7 @@ for campo in unique_filtro:
     b=float(perfil_analogo.b)
     di=float(perfil_analogo.di_hyp)
 
-    #display(qi,b,di)
+    #print(qi,b,di)
 
     perfil=pd.DataFrame()
     mes=range(0,500)
@@ -93,7 +93,7 @@ dfx=pd.DataFrame()
 dfx=serie_analogos[(serie_analogos.di_hyp >= gasto.di_hyp.quantile(.30)) & (serie_analogos.Qi_hist <= gasto.Qi_hist.quantile(0.80))]
 dfx=dfx.reset_index()
 
-display(len(pd.unique(dfx.campo)))
+print(len(pd.unique(dfx.campo)))
 
 dfxx=pd.DataFrame()
 dfxx=serie_campo.groupby(by='mes').mean().reset_index()
@@ -122,9 +122,9 @@ plt.show()
 fig2, ax2 = plt.subplots(figsize=(15,8))
 sns.distplot(gasto.Qi_hist, hist=False, kde=True,label=input_campo,
              #hist_kws = {'alpha':0.1},
-             kde_kws = {'shade': True, 'bw':'silverman'})
+             kde_kws = {'shade': True, 'bw':'scott'})
 sns.distplot(df_filtrado.Qi_hist, hist=False, kde=True,label='Analogos',
-             kde_kws = {'shade': True, 'bw':'silverman'})
+             kde_kws = {'shade': True, 'bw':'scott'})
 ax2.set_xlabel(hidrocarburo)
 ax2.set_ylabel('Probabilidad')
 plt.title('Gasto inicial Qi | Analogos | ' +str(input_campo))
@@ -132,8 +132,8 @@ plt.legend(loc='best')
 
 ############# PLOT Qo ANALOGOS ###########
 fig3, ax3 = plt.subplots(figsize=(15,8))
-sns.distplot(serie_campo[hidrocarburo], hist=False, kde=True,label=input_campo, kde_kws = {'shade': True, 'bw':'silverman'})
-sns.distplot(dfx[hidrocarburo], hist=False, kde=True,label='Analogos', kde_kws = {'shade': True, 'bw':'silverman'})
+sns.distplot(serie_campo[hidrocarburo], hist=False, kde=True,label=input_campo, kde_kws = {'shade': True, 'bw':'scott'})
+sns.distplot(dfx[hidrocarburo], hist=False, kde=True,label='Analogos', kde_kws = {'shade': True, 'bw':'scott'})
 ax3.set_xlabel(hidrocarburo)
 ax3.set_ylabel('Probabilidad')
 plt.title('Gasto mensual | Analogos | ' +str(input_campo))
