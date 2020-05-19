@@ -12,12 +12,12 @@ from scipy import stats
 from scipy.optimize import curve_fit
 from datetime import date
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 mx_bd = user_input.mx_bd
 pozos = user_input.pozos
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua
+from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
 
 def remove_nan_and_zeroes_from_columns(df, variable):

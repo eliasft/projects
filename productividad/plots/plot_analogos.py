@@ -8,19 +8,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 len_perfil = user_input.len_perfil
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua, gasto, serie_campo
+from analisis.dca_main import hidrocarburo, gas, condensado, agua, master_df, serie_campo
 
-from productividad.analisis import dca_analogos
+from analisis import dca_analogos
 gasto_analogos = dca_analogos.gasto_analogos
 unique_analogos = dca_analogos.unique_analogos
 serie_analogos = dca_analogos.serie_analogos
 
 df_filtrado=pd.DataFrame()
-df_filtrado=gasto_analogos[(gasto_analogos.di_hyp >= gasto.di_hyp.quantile(.30)) & (gasto_analogos.Qi_hist <= gasto.Qi_hist.quantile(0.80))]
+df_filtrado=gasto_analogos[(gasto_analogos.di_hyp >= master_df.di_hyp.quantile(.30)) & (gasto_analogos.Qi_hist <= master_df.Qi_hist.quantile(0.80))]
 df_filtrado=df_filtrado.sort_values('Qi_hist',ascending=False)
 unique_filtro=pd.unique(df_filtrado.campo)
 print('Número de campos muestra para ' +str(input_campo)+': '+str(len(unique_analogos)))
@@ -55,9 +55,9 @@ for campo in unique_filtro:
 
 ############# PLOT PERFILES ANALOGOS ###########
 
-qi=float(gasto.Qi_hist.mean())
-b=float(gasto.b.mean())
-di=float(gasto.di_hyp.mean())
+qi=float(master_df.Qi_hist.mean())
+b=float(master_df.b.mean())
+di=float(master_df.di_hyp.mean())
 
 
 perfil_campo=pd.DataFrame()
@@ -90,7 +90,7 @@ plt.show()
 
 
 dfx=pd.DataFrame()
-dfx=serie_analogos[(serie_analogos.di_hyp >= gasto.di_hyp.quantile(.30)) & (serie_analogos.Qi_hist <= gasto.Qi_hist.quantile(0.80))]
+dfx=serie_analogos[(serie_analogos.di_hyp >= master_df.di_hyp.quantile(.30)) & (serie_analogos.Qi_hist <= master_df.Qi_hist.quantile(0.80))]
 dfx=dfx.reset_index()
 
 print(len(pd.unique(dfx.campo)))
@@ -120,7 +120,7 @@ plt.show()
 
 ############# PLOT Qi ANALOGOS ###########
 fig2, ax2 = plt.subplots(figsize=(15,8))
-sns.distplot(gasto.Qi_hist, hist=False, kde=True,label=input_campo,
+sns.distplot(master_df.Qi_hist, hist=False, kde=True,label=input_campo,
              #hist_kws = {'alpha':0.1},
              kde_kws = {'shade': True, 'bw':'scott'})
 sns.distplot(df_filtrado.Qi_hist, hist=False, kde=True,label='Analogos',

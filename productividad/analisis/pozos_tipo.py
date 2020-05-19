@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from datetime import date
 
-from productividad.input import user_input
+from entrada import user_input
 
 len_perfil = user_input.len_perfil
 alta = user_input.alta
@@ -17,11 +17,21 @@ media = user_input.media
 baja = user_input.baja
 
 
-from productividad.analisis import dca_main
-gasto = dca_main.gasto
+from analisis import dca_main
+master_df = dca_main.master_df
 serie_resumen = dca_main.serie_resumen
 
+#########################  FUNCION PARA SELECCIONAR DECLINACION   #####################
 
+def seleccion_curva(pt):
+
+    curve=["harm"]*(pt.index.max()+1)
+    curve=pd.DataFrame(curve)
+    curve.loc[pt.iloc[:,-2]<pt.iloc[:,-1]]="hyp"
+    curve=curve.rename(columns={0:"type"})
+
+    return curve
+    
 #########################  POZOS TIPO - PRONOSTICO DE PRODUCCION Qo   #####################
 
 ###### Dataframe referencia de fechas
@@ -39,26 +49,27 @@ df['periodo']=periodo
 
 ###### Valores Medios
 
-q_baja=gasto.Qi_hist.quantile(baja)
-q_media=gasto.Qi_hist.quantile(media)
-q_alta=gasto.Qi_hist.quantile(alta)
+q_baja=master_df.Qi_hist.quantile(baja)
+q_media=master_df.Qi_hist.quantile(media)
+q_alta=master_df.Qi_hist.quantile(alta)
 
-#d_baja=gasto.di.quantile(baja)
-d_media=gasto.di_hyp.quantile(media)
-#d_media=gasto.di_harm.quantile(media)
-#d_alta=gasto.di.quantile(alta)
+#d_baja=master_df.di.quantile(baja)
+d_media=master_df.di_hyp.quantile(media)
+#d_media=master_df.di_harm.quantile(media)
+#d_alta=master_df.di.quantile(alta)
 
-d=gasto.di_hyp.mean()
-#d=gasto.di_harm.mean()
+d=master_df.di_hyp.mean()
+#d=master_df.di_harm.mean()
 
-b=gasto.b.mean()
+b=master_df.b.mean()
 
 ##################     SUBSET DE POZOS TIPO      #######################
 
+
 ######### POZOS TIPO 1 - Qi BAJA #########
 
-criterio1=(gasto['Qi_hist'] <= q_baja)
-tipo1=gasto.loc[criterio1]
+criterio1=(master_df['Qi_hist'] <= q_baja)
+tipo1=master_df.loc[criterio1]
 
 q1_baja=tipo1.Qi_hist.quantile(baja)
 q1_media=tipo1.Qi_hist.quantile(media)
@@ -74,8 +85,8 @@ b1=tipo1.b.mean()
 
 ######### POZOS TIPO 2 - Qi MEDIA #########
 
-criterio2=(gasto['Qi_hist'] > q_baja) & (gasto['Qi_hist'] < q_alta)
-tipo2=gasto.loc[criterio2]
+criterio2=(master_df['Qi_hist'] > q_baja) & (master_df['Qi_hist'] < q_alta)
+tipo2=master_df.loc[criterio2]
 
 q2_baja=tipo2.Qi_hist.quantile(baja)
 q2_media=tipo2.Qi_hist.quantile(media)
@@ -91,8 +102,8 @@ b2=tipo2.b.mean()
 
 ######### POZOS TIPO 3 - Qi ALTA #########
 
-criterio3=(gasto['Qi_hist'] >= q_alta)
-tipo3=gasto.loc[criterio3]
+criterio3=(master_df['Qi_hist'] >= q_alta)
+tipo3=master_df.loc[criterio3]
 
 q3_baja=tipo3.Qi_hist.quantile(baja)
 q3_media=tipo3.Qi_hist.quantile(media)
@@ -146,12 +157,6 @@ d = {'Qi_hist': [tipo1.Qi_hist.mean(), tipo2.Qi_hist.mean(),tipo3.Qi_hist.mean()
      'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
      'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
      'di_exp': [tipo1.di_exp.mean(), tipo2.di_exp.mean(),tipo3.di_exp.mean()],
-     'error_Qi_hyp':[tipo1.error_Qi_hyp.mean(), tipo2.error_Qi_hyp.mean(),tipo3.error_Qi_hyp.mean()],
-     'error_Qi_harm':[tipo1.error_Qi_harm.mean(), tipo2.error_Qi_harm.mean(),tipo3.error_Qi_harm.mean()],
-     'error_Qi_exp':[tipo1.error_Qi_exp.mean(), tipo2.error_Qi_exp.mean(),tipo3.error_Qi_exp.mean()],
-     'error_di_hyp':[tipo1.error_di_hyp.mean(), tipo2.error_di_hyp.mean(),tipo3.error_di_hyp.mean()],
-     'error_di_harm':[tipo1.error_di_harm.mean(), tipo2.error_di_harm.mean(),tipo3.error_di_harm.mean()],
-     'error_di_exp':[tipo1.error_di_exp.mean(), tipo2.error_di_exp.mean(),tipo3.error_di_exp.mean()],
      'Qi_gas': [tipo1.Qi_gas.mean(), tipo2.Qi_gas.mean(),tipo3.Qi_gas.mean()],
      'b_gas': [tipo1.b_gas.mean(), tipo2.b_gas.mean(),tipo3.b_gas.mean()],
      'di_gas': [tipo1.di_gas.mean(), tipo2.di_gas.mean(),tipo3.di_gas.mean()],
@@ -162,7 +167,11 @@ d = {'Qi_hist': [tipo1.Qi_hist.mean(), tipo2.Qi_hist.mean(),tipo3.Qi_hist.mean()
      'RSS_harmonica': [tipo1.RSS_harmonica.mean(), tipo2.RSS_harmonica.mean(),tipo3.RSS_harmonica.mean()],
      'RSS_gas_exponencial': [tipo1.RSS_gas_exponencial.mean(), tipo2.RSS_gas_exponencial.mean(),tipo3.RSS_gas_exponencial.mean()],
      'RSS_gas_hiperbolica': [tipo1.RSS_gas_hiperbolica.mean(), tipo2.RSS_gas_hiperbolica.mean(),tipo3.RSS_gas_hiperbolica.mean()],
-     'RSS_gas_harmonica': [tipo1.RSS_gas_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()]}
+     'RSS_gas_harmonica': [tipo1.RSS_gas_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()],
+     'RSS_condensado_exponencial': [tipo1.RSS_condensado_exponencial.mean(), tipo2.RSS_condensado_exponencial.mean(),tipo3.RSS_gas_exponencial.mean()],
+     'RSS_condensado_hiperbolica': [tipo1.RSS_condensado_hiperbolica.mean(), tipo2.RSS_gas_hiperbolica.mean(),tipo3.RSS_gas_hiperbolica.mean()],
+     'RSS_condensado_harmonica': [tipo1.RSS_condensado_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()]
+     }
 
 parametros = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
 

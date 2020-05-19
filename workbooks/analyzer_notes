@@ -1,0 +1,146 @@
+#### LISTA RESERVAS
+
+lista=['BEDEL',
+        'EL TREINTA',
+        'GASIFERO',
+        'CINCO PRESIDENTES',
+        'RODADOR',
+        'GIRALDAS',
+        'COMOAPA',
+        'SUNUAPA',
+        'MUSPAC',
+        'CHIAPAS-COPANO',
+        'ARTESA',
+        'GAUCHO',
+        'NISPERO',
+        'RIO NUEVO',
+        'SITIO GRANDE',
+        'LACAMANGO',
+        'JUSPI',
+        'TEOTLECO',
+        'BACAL',
+        'NELASH',
+        'TIUMUT',
+        'ARROYO PRIETO',
+        'LOS SOLDADOS',
+        'JUJO-TECOMINOACAN',
+        'PAREDON',
+        'JACINTO',
+        'SINI',
+        'COYULA',
+        'CACTUS',
+        'PERDIZ',
+        'MADREFIL',
+        'CUPACHE',
+        'TINTAL',
+        'TUPILCO',
+        'PACHE',
+        'TOKAL',
+        'CASTARRICAL',
+        'AYOCOTE',
+        'GUARICHO',
+        'RABASA',
+        'IRIDE',
+        'PLATANAL',
+        'CUNDUACAN',
+        'OXIACAQUE',
+        'TERRA',
+        'CAPARROSO PIJIJE ESCUINTLE',
+        'BRILLANTE',
+        'EDEN JOLOTE',
+        'SHISHITO',
+        'SEN',
+        'SAMARIA',
+        'LUNA-PALAPA',
+        ]
+
+reservas_r9=mx_reservas[mx_reservas.NOMBRE.isin(lista)]
+
+
+#### LISTA CAMPOS
+
+  lista=['BEDEL',
+          'ELTREINTA',
+          'GASIFERO',
+          'CINCO PRESIDENTES',
+          'RODADOR',
+          'GIRALDAS',
+          'COMOAPA',
+          'SUNUAPA',
+          'MUSPAC',
+          'CHIAPAS',
+          'COPANO',
+          'ARTESA',
+          'GAUCHO',
+          'NISPERO',
+          'RIO NUEVO',
+          'SITIO GRANDE',
+          'LACAMANGO',
+          'JUSPI',
+          'TEOTLECO',
+          'BACAL',
+          'NELASH',
+          'TIUMUT',
+          'ARROYO PRIETO',
+          'LOS SOLDADOS',
+          'JUJO',
+          'TECOMINOACAN',
+          'PAREDON',
+          'JACINTO',
+          'SINI',
+          'CACTUS',
+          'PERDIZ',
+          'MADREFIL',
+          'CUPACHE',
+          'TINTAL',
+          'TUPILCO',
+          'PACHE',
+          'TOKAL',
+          'CASTARRICAL',
+          'AYOCOTE',
+          'GUARICHO',
+          'RABASA',
+          'IRIDE',
+          'PLATANAL',
+          'CUNDUACAN',
+          'OXIACAQUE',
+          'TERRA',
+          'CAPARROSO',
+          'PIJIJE',
+          'ESCUINTLE',
+          'BRILLANTE',
+          'EDEN',
+          'JOLOTE',
+          'SHISHITO',
+          'SEN',
+          'SAMARIA',
+          'LUNA',
+          'PALAPA',
+          ]
+
+AYOCOTE, CACTUS, CAPARROSO, CASTARRICAL,CUPACHE,PACHE,PAREDON,PERDIZ, SINI,TINTAL,TOKAL,TUPILCO
+
+
+  df=parametros.drop(columns='pozo')
+  df=df.groupby(by='campo').mean()
+  declinacion=pd.DataFrame(index=range(0,(12*15)))
+
+  for indice in df.index:
+
+          parametro_qi = resumen_campos.Q_base[resumen_campos.index == indice].quantile(0.50)
+          parametro_b = df.b[df.index == campo].quantile(0.50)
+          parametro_di = df.di_hyp[df.index == campo].quantile(0.50)
+
+          t=0
+
+          for t in declinacion.index:
+
+              qo=parametro_qi/((1.0+parametro_b*parametro_di*t)**(1.0/parametro_b))
+              declinacion.loc[t,indice]=qo
+
+  eur=declinacion.sum()
+  eur=eur.rename('EUR')
+
+  eur.to_csv('eur.csv')
+
+  declinacion.to_csv(r'/Users/fffte/Desktop/declinacion.csv')

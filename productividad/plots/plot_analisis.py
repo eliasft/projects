@@ -10,17 +10,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 
-from productividad.analisis import pozos_tipo
+from analisis import pozos_tipo
 tipos = pozos_tipo.tipos
 
-from productividad.analisis import dca_main
+from analisis import dca_main
 serie_campo = dca_main.serie_campo
 serie_status = dca_main.serie_status
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua
+from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
 ########### DISPERSION DEL GASTO INICIAL #############
 
@@ -37,7 +37,7 @@ sns.scatterplot(x='first_oil', y='Qi_hist',
                  data=tipos)
 ax4.set_xlabel('First Oil')
 ax4.set_ylabel('Qi')
-plt.title('Dispersion del gasto inicial Qi -  ' +str(hidrocarburo)+' para '+str(input_campo),
+plt.title('Dispersion del master_df inicial Qi -  ' +str(hidrocarburo)+' para '+str(input_campo),
           fontsize=18,
           fontweight='bold')
 plt.legend(loc='upper right',
@@ -50,7 +50,7 @@ plt.show()
 Q_plot = sns.FacetGrid(tipos, col="tipo",hue='tipo',height=5, aspect=0.9)
 Q_plot.map(sns.distplot, 'Qi_hist')
 plt.subplots_adjust(top=0.8)
-Q_plot.fig.suptitle('Distribucion del gasto inicial - Qi - '+str(input_campo),
+Q_plot.fig.suptitle('Distribucion del master_df inicial - Qi - '+str(input_campo),
               fontsize=18,
               fontweight='bold')
 
@@ -61,7 +61,7 @@ d_plot.fig.suptitle('Distribucion de la declinacion inicial - di - '+str(input_c
                fontsize=18,
               fontweight='bold')
 
-#Distribucion del gasto historico vs pronosticado
+#Distribucion del master_df historico vs pronosticado
 fig2, ax2 = plt.subplots(figsize=(15,8))
 sns.distplot(serie_campo[hidrocarburo],hist=False, kde=True, label='Qo historico',kde_kws = {'shade': True})#,'bw':'scott'})
 sns.distplot(serie_campo.hiperbolica,hist=False, kde=True,label='Hyperbolic Predicted', kde_kws = {'shade': True})#,'bw':'scott'})

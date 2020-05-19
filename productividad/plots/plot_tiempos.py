@@ -8,13 +8,13 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 
-from productividad.analisis import dca_main
+from analisis import dca_main
 serie_resumen = dca_main.serie_resumen
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua
+from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
 fig1, ax1 = plt.subplots(figsize=(15,8))
 sns.distplot(serie_resumen.dias_perforacion,

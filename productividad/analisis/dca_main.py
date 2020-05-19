@@ -12,7 +12,7 @@ from scipy import stats
 from scipy.optimize import curve_fit
 from datetime import date
 
-from productividad.input import user_input
+from entrada import user_input
 
 pozos = user_input.pozos
 info_reservas = user_input.info_reservas
@@ -156,7 +156,7 @@ serie_campo=pd.DataFrame()
 serie_base=pd.DataFrame()
 serie_status=pd.DataFrame()
 serie_resumen=pd.DataFrame()
-gasto=pd.DataFrame()
+master_df=pd.DataFrame()
 
 #Carga data pozos
 data_pozos=pozos
@@ -185,13 +185,13 @@ data_pozos=remove_nan_and_zeroes_from_columns(data_pozos, hidrocarburo)
 unique_well_list=list(pd.unique(data_pozos.pozo))
 
 #Get the earliest RecordDate for each Well
-data_pozos['first_oil']= get_min_or_max_value_in_column_by_group(data_pozos, group_by_column='pozo',
+data_pozos.loc[:,'first_oil']= get_min_or_max_value_in_column_by_group(data_pozos, group_by_column='pozo',
                                                                 calc_column='fecha', calc_type='min')
 
-data_pozos['first_oil']=pd.to_datetime(data_pozos['first_oil'],dayfirst=True)
+data_pozos.loc[:,'first_oil']=pd.to_datetime(data_pozos['first_oil'],dayfirst=True)
 
 #Generate column for time online delta
-data_pozos['days_online']=generate_time_delta_column(data_pozos, time_column='fecha',
+data_pozos.loc[:,'days_online']=generate_time_delta_column(data_pozos, time_column='fecha',
                                                       date_first_online_column='first_oil')
 
 #Generacion de dataframes por rangos de fechas de análisis
@@ -224,7 +224,7 @@ for pozo in unique_well_list:
     serie_produccion.loc[:,'mes']=np.around((serie_produccion.days_online/30),decimals=0)
 
     #Calculo de declinacion porcentual
-    serie_produccion['pct_cambio_Qo']=serie_produccion[hidrocarburo].pct_change(periods=1)
+    serie_produccion.loc[:,'pct_cambio_Qo']=serie_produccion[hidrocarburo].pct_change(periods=1)
 
     #Ajuste Exponencial
     popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'],
@@ -233,6 +233,9 @@ for pozo in unique_well_list:
 
     popt_exp_g, pcov_exp_g=curve_fit(exponencial, serie_produccion['mes'],
                                  serie_produccion[gas],bounds=(0, [qi_g,10]))
+
+    popt_exp_c, pcov_exp_c=curve_fit(exponencial, serie_produccion['mes'],
+                                     serie_produccion[condensado],bounds=(0, [qi_c,10]))
 
     #print('Exponential Fit Curve-fitted Variables: qi='+str(popt_exp[0])+', di='+str(popt_exp[1]))
 
@@ -255,27 +258,28 @@ for pozo in unique_well_list:
     popt_harm_g, pcov_harm_g=curve_fit(harmonica, serie_produccion['mes'],
                                  serie_produccion[gas],bounds=(0, [qi_g,10]))
 
+    popt_harm_c, pcov_harm_c=curve_fit(harmonica, serie_produccion['mes'],
+                                 serie_produccion[condensado],bounds=(0, [qi_c,10]))
+
     #print('Harmonic Fit Curve-fitted Variables: qi='+str(popt_harm[0])+', di='+str(popt_harm[1]))
 
-    #Resultados de funcion Exponencial
+    #Resultados de funcion HIDROCARBURO PRINCIPAL
     serie_produccion.loc[:,'exponencial']=exponencial(serie_produccion['mes'],
                           *popt_exp)
 
-    #Resultados de funcion Hiperbolica
     serie_produccion.loc[:,'hiperbolica']=hiperbolica(serie_produccion['mes'],
                               *popt_hyp)
 
-    #Resultados de funcion Harmonica
     serie_produccion.loc[:,'harmonica']=harmonica(serie_produccion['mes'],
                               *popt_harm)
 
-    #Residuales de la funcion Hidrocarburo Principal
+    #Residuales de la funcion HIDROCARBURO PRINCIPAL
     serie_produccion.loc[:,'residual_exponencial']=(serie_produccion[hidrocarburo]-serie_produccion.exponencial)**2
     serie_produccion.loc[:,'residual_hiperbolica']=(serie_produccion[hidrocarburo]-serie_produccion.hiperbolica)**2
     serie_produccion.loc[:,'residual_harmonica']=(serie_produccion[hidrocarburo]-serie_produccion.harmonica)**2
 
 
-    #Resultados de funcion Gas
+    #Resultados de funcion GAS
     serie_produccion.loc[:,'gas_exponencial']=exponencial(serie_produccion['mes'],
                               *popt_exp_g)
 
@@ -290,10 +294,20 @@ for pozo in unique_well_list:
     serie_produccion.loc[:,'residual_gas_hiperbolica']=(serie_produccion[gas]-serie_produccion.gas_hiperbolica)**2
     serie_produccion.loc[:,'residual_gas_harmonica']=(serie_produccion[gas]-serie_produccion.gas_harmonica)**2
 
-    #Resultados de funcion Condensado
-    serie_produccion.loc[:,'condensado']=hiperbolica(serie_produccion['mes'],
-                             *popt_hyp_c)
+    #Resultados de funcion CONDENSADO
+    serie_produccion.loc[:,'condensado_exponencial']=exponencial(serie_produccion['mes'],
+                              *popt_exp_g)
 
+    serie_produccion.loc[:,'condensado_hiperbolica']=hiperbolica(serie_produccion['mes'],
+                              *popt_hyp_g)
+
+    serie_produccion.loc[:,'condensado_harmonica']=harmonica(serie_produccion['mes'],
+                              *popt_harm_g)
+
+    #Residuales de la funcion CONDENSADO
+    serie_produccion.loc[:,'residual_condensado_exponencial']=(serie_produccion[gas]-serie_produccion.gas_exponencial)**2
+    serie_produccion.loc[:,'residual_condensado_hiperbolica']=(serie_produccion[gas]-serie_produccion.gas_hiperbolica)**2
+    serie_produccion.loc[:,'residual_condensado_harmonica']=(serie_produccion[gas]-serie_produccion.gas_harmonica)**2
 
     #Calculo del ERROR ESTANDAR para cada parametro
     perr_hyp = np.sqrt(np.diag(pcov_hyp))
@@ -312,51 +326,55 @@ for pozo in unique_well_list:
     serie_produccion.loc[:,'acum_BOE'] = serie_produccion.Mbpced.cumsum()*30/1_000
     serie_produccion.loc[:,'liquidos_Mbd'] = serie_produccion.aceite_Mbd + serie_produccion.agua_Mbd + serie_produccion.condensado_Mbd
 
-
     seleccion_status=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
     seleccion_base=serie_produccion[(serie_produccion.fecha == serie_produccion.fecha.max()) & (serie_produccion.fecha >= '2020-01-01')]
 
     Qi=[[pozo,
          qi,
-         popt_hyp[0],
-         popt_hyp[1],
-         popt_hyp[2],
-         perr_hyp[0],
-         perr_hyp[1],
-         popt_harm[0],
-         popt_harm[1],
-         perr_harm[0],
-         perr_harm[1],
-         popt_exp[0],
-         popt_exp[1],
-         perr_exp[0],
-         perr_exp[1],
          str(hidrocarburo),
+         str(seleccion_status.at[pozo,'estado_actual']),
+         str(seleccion_status.at[pozo,'trayectoria']),
+         seleccion_status.at[pozo,'first_oil'],
          serie_produccion.fecha.max(),
          serie_produccion.loc[:,'mes'].max(),
          float(seleccion_status.at[pozo,'profundidad_total']),
-         str(seleccion_status.at[pozo,'trayectoria']),
-         seleccion_status.at[pozo,'first_oil'],
-         popt_hyp_g[0],
-         popt_hyp_g[1],
-         popt_hyp_g[2],
-         popt_hyp_c[0],
-         popt_hyp_c[1],
-         popt_hyp_c[2],
-         str(seleccion_status.at[pozo,'estado_actual']),
-         serie_produccion.residual_exponencial.sum(),
-         serie_produccion.residual_hiperbolica.sum(),
-         serie_produccion.residual_harmonica.sum(),
-         serie_produccion.residual_gas_exponencial.sum(),
-         serie_produccion.residual_gas_hiperbolica.sum(),
-         serie_produccion.residual_gas_harmonica.sum(),
          serie_produccion.Np_MMb.max(),
          serie_produccion.Gp_MMMpc.max(),
          serie_produccion.Cp_MMb.max(),
          serie_produccion.Wp_MMb.max(),
          serie_produccion.acum_BOE.max(),
          serie_produccion.RGA.mean(),
-         serie_produccion.corte_agua.mean()
+         serie_produccion.corte_agua.mean(),
+         popt_hyp[0],
+         popt_hyp[1],
+         popt_hyp[2],
+         popt_harm[0],
+         popt_harm[1],
+         popt_exp[0],
+         popt_exp[1],
+         popt_hyp_g[0],
+         popt_hyp_g[1],
+         popt_hyp_g[2],
+         popt_harm_g[0],
+         popt_harm_g[1],
+         popt_exp_g[0],
+         popt_exp_g[1],
+         popt_hyp_c[0],
+         popt_hyp_c[1],
+         popt_hyp_c[2],
+         popt_harm_c[0],
+         popt_harm_c[1],
+         popt_exp_c[0],
+         popt_exp_c[1],
+         serie_produccion.residual_exponencial.sum(),
+         serie_produccion.residual_hiperbolica.sum(),
+         serie_produccion.residual_harmonica.sum(),
+         serie_produccion.residual_gas_exponencial.sum(),
+         serie_produccion.residual_gas_hiperbolica.sum(),
+         serie_produccion.residual_gas_harmonica.sum(),
+         serie_produccion.residual_condensado_exponencial.sum(),
+         serie_produccion.residual_condensado_hiperbolica.sum(),
+         serie_produccion.residual_condensado_harmonica.sum(),
          ]]
 
     resumen_pozos=[[pozo,
@@ -392,57 +410,62 @@ for pozo in unique_well_list:
 
     #Resultados de DCA
     serie_campo=serie_campo.append(serie_produccion,sort=False)
-    gasto=gasto.append(Qi,sort=True)
+    master_df=master_df.append(Qi,sort=True)
     serie_status=serie_status.append(seleccion_status)
     serie_base=serie_base.append(seleccion_base)
     serie_resumen=serie_resumen.append(resumen_pozos)
 
 
 
-gasto=gasto.rename(columns={0:'pozo',
+master_df=master_df.rename(columns={0:'pozo',
                             1:'Qi_hist',
-                            2:'Qi_hyp',
-                            3:'b',
-                            4:'di_hyp',
-                            5:'error_Qi_hyp',
-                            6:'error_di_hyp',
-                            7:'Qi_harm',
-                            8:'di_harm',
-                            9:'error_Qi_harm',
-                           10:'error_di_harm',
-                           11:'Qi_exp',
-                           12:'di_exp',
-                           13:'error_Qi_exp',
-                           14:'error_di_exp',
-                           15:'hidrocarburo_principal',
-                           16:'ultima_produccion',
-                           17:'mes_max',
-                           18:'profundidad_total',
-                           19:'trayectoria',
-                           20:'first_oil',
-                           21:'Qi_gas',
-                           22:'b_gas',
-                           23:'di_gas',
-                           24:'Qi_condensado',
-                           25:'b_condensado',
-                           26:'di_condensado',
-                           27:'estado_actual',
-                           28:'RSS_exponencial',
-                           29:'RSS_hiperbolica',
-                           30:'RSS_harmonica',
-                           31:'RSS_gas_exponencial',
-                           32:'RSS_gas_hiperbolica',
-                           33:'RSS_gas_harmonica',
-                           34:'Np',
-                           35:'Gp',
-                           36:'Cp',
-                           37:'Wp',
-                           38:'acum_BOE',
-                           39:'RGA',
-                           40:'corte_agua'
+                            2:'hidrocarburo_principal',
+                            3:'estado_actual',
+                            4:'trayectoria',
+                            5:'first_oil',
+                            6:'ultima_produccion',
+                            7:'mes_max',
+                            8:'profundidad_total',
+                            9:'Np',
+                           10:'Gp',
+                           11:'Cp',
+                           12:'Wp',
+                           13:'acum_BOE',
+                           14:'RGA',
+                           15:'corte_agua',
+                           16:'Qi_hyp',
+                           17:'b',
+                           18:'di_hyp',
+                           19:'Qi_harm',
+                           20:'di_harm',
+                           21:'Qi_exp',
+                           22:'di_exp',
+                           23:'Qi_hyp_gas',
+                           24:'b_gas',
+                           25:'di_hyp_gas',
+                           26:'Qi_harm_gas',
+                           27:'di_harm_gas',
+                           28:'Qi_exp_gas',
+                           29:'di_exp_gas',
+                           30:'Qi_hyp_condensado',
+                           31:'b_condensado',
+                           32:'di_hyp_condensado',
+                           33:'Qi_harm_condensado',
+                           34:'di_harm_condensado',
+                           35:'Qi_exp_condensado',
+                           36:'di_exp_condensado',
+                           37:'RSS_exponencial',
+                           38:'RSS_hiperbolica',
+                           39:'RSS_harmonica',
+                           40:'RSS_gas_exponencial',
+                           41:'RSS_gas_hiperbolica',
+                           42:'RSS_gas_harmonica',
+                           43:'RSS_condensado_exponencial',
+                           44:'RSS_condensado_hiperbolica',
+                           45:'RSS_condensado_harmonica',
                            })
 
-gasto=gasto.set_index('pozo')
+master_df=master_df.set_index('pozo')
 
 serie_resumen=serie_resumen.rename(columns={0:'pozo',
                                             1:'Qi_hist',
@@ -476,7 +499,6 @@ Cp=(serie_campo.condensado_Mbd.sum()*30)/1_000
 Wp=(serie_campo.agua_Mbd.sum()*30)/1_000
 
 gas_equiv=((serie_campo[gas].sum()*30)/1_000)*(1/6)
-
 
 Q_base=serie_base.aceite_Mbd.sum()
 G_base=serie_base[gas].sum()

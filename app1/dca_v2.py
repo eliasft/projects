@@ -677,7 +677,7 @@ def analisis_dca(pozos):
         serie_produccion.loc[:,'Gp_MMMpc']=(serie_produccion[gas].cumsum())*30/1_000
         serie_produccion.loc[:,'Cp_MMb']=(serie_produccion[condensado].cumsum())*30/1_000
         serie_produccion.loc[:,'Wp_MMb']=(serie_produccion[agua].cumsum())*30/1_000
-        
+
         serie_produccion.loc[:,'RGA'] = (serie_produccion[gas]*1_000) / serie_produccion[hidrocarburo]
         serie_produccion.loc[:,'corte_agua'] = serie_produccion[agua] / (serie_produccion.aceite_Mbd + serie_produccion.condensado_Mbd)
         serie_produccion.loc[:,'Mbpced'] = serie_produccion.aceite_Mbd + (serie_produccion[gas]*(1/6))
@@ -687,7 +687,7 @@ def analisis_dca(pozos):
 
         seleccion_status=serie_produccion[serie_produccion.fecha == serie_produccion.fecha.max()]
         seleccion_base=serie_produccion[(serie_produccion.fecha == serie_produccion.fecha.max()) & (serie_produccion.fecha >= '2020-01-01')]
-        
+
         Qi=[[pozo,
              qi,
              popt_hyp[0],
@@ -846,7 +846,7 @@ def analisis_dca(pozos):
     Gp=((serie_campo.gas_asociado_MMpcd.sum()+serie_campo.gas_no_asociado_MMpcd.sum())*30)/1_000
     Cp=(serie_campo.condensado_Mbd.sum()*30)/1_000
     Wp=(serie_campo.agua_Mbd.sum()*30)/1_000
-    
+
     gas_equiv=((serie_campo[gas].sum()*30)/1_000)*(1/6)
 
 
@@ -2114,25 +2114,25 @@ def plot_analogos():
 def generar_archivos():
 
 
-    serie_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_campo.csv')
-    dfx.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_resumen.csv')
-    serie_base.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_base.csv')
-    serie_rma.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_rma.csv')
-    
-    resumen.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/resumen.csv')
-    info_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/info_campo.csv')
+    serie_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_campo.csv')
+    dfx.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_resumen.csv')
+    serie_base.to_csv(r'/Users/fffte/Documents/GitHub/projects//output/serie_base.csv')
+    serie_rma.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_rma.csv')
 
-    gasto.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_gasto.csv')
-    tipos.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_tipos.csv')
+    resumen.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/resumen.csv')
+    info_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/info_campo.csv')
 
-    parametros.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/parametros.csv')
+    gasto.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_gasto.csv')
+    tipos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_tipos.csv')
+
+    parametros.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/parametros.csv')
     #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
-    perfil.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/perfiles_tipo.csv')
+    perfil.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/perfiles_tipo.csv')
 
     if input_analogos == 'Y':
 
-          serie_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/serie_analogos.csv')
-          gasto_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/productividad/output/gasto_analogos.csv')
+          serie_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_analogos.csv')
+          gasto_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/gasto_analogos.csv')
 
     return
 

@@ -8,12 +8,12 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua
+from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
-from productividad.analisis import dca_main
+from analisis import dca_main
 serie_muestra = dca_main.serie_muestra
 serie_campo = dca_main.serie_campo
 fecha_muestra = dca_main.fecha_muestra

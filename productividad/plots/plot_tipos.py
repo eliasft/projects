@@ -8,14 +8,14 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from productividad.input import user_input
+from entrada import user_input
 input_campo = user_input.input_campo
 len_perfil = user_input.len_perfil
 
-from productividad.analisis import pozos_tipo
+from analisis import pozos_tipo
 perfil = pozos_tipo.perfil
 
-from productividad.analisis.dca_main import hidrocarburo, gas, condensado, agua
+from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
 fig6, ax6 = plt.subplots(figsize=(15,10))
 

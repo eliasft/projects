@@ -1,4 +1,4 @@
-from productividad.input import user_input
+from entrada import user_input
 
 input_analogos = user_input.input_analogos
 input_archivos = user_input.input_archivos
@@ -9,26 +9,26 @@ def run_results():
 
     if input_analogos == 'Y':
 
-        from productividad.analisis import dca_analogos
+        from analisis import dca_analogos
 
     if input_archivos == 'Y':
 
-        from productividad.output import generar_archivos
+        from output import generar_archivos
 
     if input_plots == 'Y':
 
-        from productividad.plots import plot_tipos
+        from plots import plot_tipos
 
-        from productividad.plots import plot_analisis
+        from plots import plot_analisis
 
-        from productividad.plots import plot_tiempos
+        from plots import plot_tiempos
 
         if input_fecha != str(''):
 
-            from productividad.plots import plot_muestra
+            from plots import plot_muestra
 
         if input_analogos == 'Y':
 
-            from productividad.plots import plot_analogos
+            from plots import plot_analogos
 
     return
