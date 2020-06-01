@@ -19,19 +19,8 @@ baja = user_input.baja
 
 from analisis import dca_main
 master_df = dca_main.master_df
-serie_resumen = dca_main.serie_resumen
 
-#########################  FUNCION PARA SELECCIONAR DECLINACION   #####################
 
-def seleccion_curva(pt):
-
-    curve=["harm"]*(pt.index.max()+1)
-    curve=pd.DataFrame(curve)
-    curve.loc[pt.iloc[:,-2]<pt.iloc[:,-1]]="hyp"
-    curve=curve.rename(columns={0:"type"})
-
-    return curve
-    
 #########################  POZOS TIPO - PRONOSTICO DE PRODUCCION Qo   #####################
 
 ###### Dataframe referencia de fechas
@@ -123,7 +112,6 @@ tipo3.loc[:,'tipo']='ALTA'
 tipos=pd.DataFrame()
 tipos=tipos.append([tipo1,tipo2,tipo3])
 
-dfx=serie_resumen.merge(tipos[['tipo']], how='left',on='pozo')
 
 perfil=pd.DataFrame()
 
@@ -150,30 +138,29 @@ for x in perfil.columns:
     perfil['EUR_'+str(x)]=(perfil[x].cumsum())*30/1_000
 
 d = {'Qi_hist': [tipo1.Qi_hist.mean(), tipo2.Qi_hist.mean(),tipo3.Qi_hist.mean()],
-     'Qi_hyp': [tipo1.Qi_hyp.mean(), tipo2.Qi_hyp.mean(),tipo3.Qi_hyp.mean()],
-     'Qi_harm': [tipo1.Qi_harm.mean(), tipo2.Qi_harm.mean(),tipo3.Qi_harm.mean()],
-     'Qi_exp': [tipo1.Qi_exp.mean(), tipo2.Qi_exp.mean(),tipo3.Qi_exp.mean()],
-     'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
-     'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
-     'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
-     'di_exp': [tipo1.di_exp.mean(), tipo2.di_exp.mean(),tipo3.di_exp.mean()],
-     'Qi_gas': [tipo1.Qi_gas.mean(), tipo2.Qi_gas.mean(),tipo3.Qi_gas.mean()],
-     'b_gas': [tipo1.b_gas.mean(), tipo2.b_gas.mean(),tipo3.b_gas.mean()],
-     'di_gas': [tipo1.di_gas.mean(), tipo2.di_gas.mean(),tipo3.di_gas.mean()],
-     'Qi_condensado': [tipo1.Qi_condensado.mean(), tipo2.Qi_condensado.mean(),tipo3.Qi_condensado.mean()],
-     'b_condensado': [tipo1.b_condensado.mean(), tipo2.b_condensado.mean(),tipo3.b_condensado.mean()],
-     'RSS_exponencial': [tipo1.RSS_exponencial.mean(), tipo2.RSS_exponencial.mean(),tipo3.RSS_exponencial.mean()],
-     'RSS_hiperbolica': [tipo1.RSS_hiperbolica.mean(), tipo2.RSS_hiperbolica.mean(),tipo3.RSS_hiperbolica.mean()],
-     'RSS_harmonica': [tipo1.RSS_harmonica.mean(), tipo2.RSS_harmonica.mean(),tipo3.RSS_harmonica.mean()],
-     'RSS_gas_exponencial': [tipo1.RSS_gas_exponencial.mean(), tipo2.RSS_gas_exponencial.mean(),tipo3.RSS_gas_exponencial.mean()],
-     'RSS_gas_hiperbolica': [tipo1.RSS_gas_hiperbolica.mean(), tipo2.RSS_gas_hiperbolica.mean(),tipo3.RSS_gas_hiperbolica.mean()],
-     'RSS_gas_harmonica': [tipo1.RSS_gas_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()],
-     'RSS_condensado_exponencial': [tipo1.RSS_condensado_exponencial.mean(), tipo2.RSS_condensado_exponencial.mean(),tipo3.RSS_gas_exponencial.mean()],
-     'RSS_condensado_hiperbolica': [tipo1.RSS_condensado_hiperbolica.mean(), tipo2.RSS_gas_hiperbolica.mean(),tipo3.RSS_gas_hiperbolica.mean()],
-     'RSS_condensado_harmonica': [tipo1.RSS_condensado_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()]
-     }
+      'Qi_hyp': [tipo1.Qi_hyp.mean(), tipo2.Qi_hyp.mean(),tipo3.Qi_hyp.mean()],
+      'Qi_harm': [tipo1.Qi_harm.mean(), tipo2.Qi_harm.mean(),tipo3.Qi_harm.mean()],
+      'Qi_exp': [tipo1.Qi_exp.mean(), tipo2.Qi_exp.mean(),tipo3.Qi_exp.mean()],
+      'b': [tipo1.b.mean(), tipo2.b.mean(),tipo3.b.mean()],
+      'di_hyp': [tipo1.di_hyp.mean(), tipo2.di_hyp.mean(),tipo3.di_hyp.mean()],
+      'di_harm': [tipo1.di_harm.mean(), tipo2.di_harm.mean(),tipo3.di_harm.mean()],
+      'di_exp': [tipo1.di_exp.mean(), tipo2.di_exp.mean(),tipo3.di_exp.mean()],
+      'Qi_hyp_gas': [tipo1.Qi_hyp_gas.mean(), tipo2.Qi_hyp_gas.mean(),tipo3.Qi_hyp_gas.mean()],
+      'b_gas': [tipo1.b_gas.mean(), tipo2.b_gas.mean(),tipo3.b_gas.mean()],
+      'di_hyp_gas': [tipo1.di_hyp_gas.mean(), tipo2.di_hyp_gas.mean(),tipo3.di_hyp_gas.mean()],
+      'Qi_hyp_condensado': [tipo1.Qi_hyp_condensado.mean(), tipo2.Qi_hyp_condensado.mean(),tipo3.Qi_hyp_condensado.mean()],
+      'b_condensado': [tipo1.b_condensado.mean(), tipo2.b_condensado.mean(),tipo3.b_condensado.mean()],
+      'di_hyp_condensado': [tipo1.di_hyp_condensado.mean(), tipo2.di_hyp_condensado.mean(),tipo3.di_hyp_condensado.mean()],
+      'RSS_exponencial': [tipo1.RSS_exponencial.mean(), tipo2.RSS_exponencial.mean(),tipo3.RSS_exponencial.mean()],
+      'RSS_hiperbolica': [tipo1.RSS_hiperbolica.mean(), tipo2.RSS_hiperbolica.mean(),tipo3.RSS_hiperbolica.mean()],
+      'RSS_harmonica': [tipo1.RSS_harmonica.mean(), tipo2.RSS_harmonica.mean(),tipo3.RSS_harmonica.mean()],
+      'RSS_gas_exponencial': [tipo1.RSS_gas_exponencial.mean(), tipo2.RSS_gas_exponencial.mean(),tipo3.RSS_gas_exponencial.mean()],
+      'RSS_gas_hiperbolica': [tipo1.RSS_gas_hiperbolica.mean(), tipo2.RSS_gas_hiperbolica.mean(),tipo3.RSS_gas_hiperbolica.mean()],
+      'RSS_gas_harmonica': [tipo1.RSS_gas_harmonica.mean(), tipo2.RSS_gas_harmonica.mean(),tipo3.RSS_gas_harmonica.mean()]
+      }
 
-parametros = pd.DataFrame(data=d,index=['tipo1','tipo2','tipo3'])
+
+parametros = pd.DataFrame(data=d,index=['BAJA','MEDIA','ALTA'])
 
 
 ###########GENERACION DE ARCHIVO DE RMA's
@@ -186,3 +173,10 @@ criterio_rma=['INACTIVO',
 filtro_rma=tipos.estado_actual.isin(criterio_rma)
 serie_rma=tipos[filtro_rma]
 serie_rma=serie_rma.sort_values(by='mes_max',ascending=False)
+
+for x in serie_rma.index:
+
+   if serie_rma.loc[x,'mes_max'] <= 100:
+       serie_rma.loc[x,'RMA']=True
+   else:
+       serie_rma.loc[x,'RMA']=False

@@ -32,8 +32,9 @@ mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_full
                               'contrato'],
                               low_memory=True)
 
-mx_reservas=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_reservas.csv',
-                      index_col=0)
+mx_bd=mx_bd.drop_duplicates(subset=['pozo','fecha'],keep='first')
+
+mx_reservas=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_reservas.csv')
 
 mx_tiempos=pd.read_csv("/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_tiempos.csv",
                       index_col=0,

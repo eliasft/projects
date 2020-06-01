@@ -310,40 +310,40 @@ def inputs():
 
     ####################        VALIDACION REGION FISCAL         #####################
 
-    region_fiscal = str('')
+    #region_fiscal = str('')
 
-    if pozos.cuenca.str.contains('TAMPICO-MISANTLA').any() == True:
-            region_fiscal = 'chicontepec'
+    #if pozos.cuenca.str.contains('TAMPICO-MISANTLA').any() == True:
+     #       region_fiscal = 'chicontepec'
 
-    if pozos.cuenca.str.contains('VERACRUZ').any() == True:
-        if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True:
-            region_fiscal = 'gas'
-        else:
-            region_fiscal = 'aceite_terrestre'
+    #if pozos.cuenca.str.contains('VERACRUZ').any() == True:
+     #   if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True:
+      #      region_fiscal = 'gas'
+       # else:
+        #    region_fiscal = 'aceite_terrestre'
 
-    if pozos.cuenca.str.contains('BURGOS' or 'SABINAS').any() == True:
-        if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True:
-            region_fiscal = 'gas'
-        else:
-            region_fiscal = 'aceite_terrestre'
+    #if pozos.cuenca.str.contains('BURGOS' or 'SABINAS').any() == True:
+     #   if pozos.tipo_de_hidrocarburo.str.contains('GAS').any() == True:
+      #      region_fiscal = 'gas'
+       # else:
+        #    region_fiscal = 'aceite_terrestre'
 
-    if pozos.cuenca.str.contains('CUENCAS DEL SURESTE').any() == True:
-        if pozos.ubicacion.str.contains('MARINO').any() == True:
-            region_fiscal = 'aguas_someras'
-        else:
-            region_fiscal = 'aceite_terrestre'
+    #if pozos.cuenca.str.contains('CUENCAS DEL SURESTE').any() == True:
+     #   if pozos.ubicacion.str.contains('MARINO').any() == True:
+      #      region_fiscal = 'aguas_someras'
+       # else:
+        #    region_fiscal = 'aceite_terrestre'
 
-    if pozos.ubicacion.str.contains('AGUAS PROFUNDAS').any() == True :
-        region_fiscal = 'aguas_profundas'
+    #if pozos.ubicacion.str.contains('AGUAS PROFUNDAS').any() == True :
+     #   region_fiscal = 'aguas_profundas'
 
-    if pozos.cuenca.str.contains('CINTURON PLEGADO DE CHIAPAS').any() == True:
-        region_fiscal = 'aceite_terrestre'
+    #if pozos.cuenca.str.contains('CINTURON PLEGADO DE CHIAPAS').any() == True:
+     #   region_fiscal = 'aceite_terrestre'
 
-    if pozos.entidad.str.contains('AGUAS TERRITORIALES').any() == True:
-        region_fiscal = 'aguas_someras'
+    #if pozos.entidad.str.contains('AGUAS TERRITORIALES').any() == True:
+     #   region_fiscal = 'aguas_someras'
 
-    if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
-        raise SystemExit("Párametro Inválido")
+    #if region_fiscal not in ["aceite_terrestre","aguas_someras","aguas_profundas","gas","chicontepec"]:
+     #   raise SystemExit("Párametro Inválido")
 
 
     #ARCHIVO CSV CON BASE DE DATOS DE POZOS

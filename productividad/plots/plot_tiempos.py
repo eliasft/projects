@@ -12,12 +12,12 @@ from entrada import user_input
 input_campo = user_input.input_campo
 
 from analisis import dca_main
-serie_resumen = dca_main.serie_resumen
+master_df = dca_main.master_df
 
 from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
 fig1, ax1 = plt.subplots(figsize=(15,8))
-sns.distplot(serie_resumen.dias_perforacion,
+sns.distplot(master_df.dias_perforacion,
              hist=False,
              kde=True,
              color='Black',
@@ -45,7 +45,7 @@ sns.scatterplot(x='dias_perforacion', y='profundidad_total',
              palette='coolwarm',
              style="estado_actual",
              markers=True,
-             data=serie_resumen,s=800)
+             data=master_df,s=800)
 
 ax2.set_xlabel('Dias de perforacion')
 ax2.set_ylabel('Profundidad total')

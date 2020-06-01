@@ -59,16 +59,18 @@ if input_plots == str(''):
 
 pozos=pd.DataFrame()
 
-seleccion_pozo=mx_bd.pozo.str.match(pat=input_campo,na=False)
+#seleccion_pozo=mx_bd.pozo.str.match(pat=input_campo,na=False)
 seleccion_campo=mx_bd.campo.str.match(pat=input_campo, na=False)
 seleccion_contrato=mx_bd.contrato.str.contains(pat=input_campo,regex=True, na=False)
 
-pozos=mx_bd.loc[seleccion_campo | seleccion_pozo | seleccion_contrato]
-lista_pozos=list(pd.unique(pozos.pozo))
+pozos=mx_bd.loc[seleccion_campo | seleccion_contrato]
+
 
 ####################       INFORMACION COMPLEMENTARIA    #####################
 
 pozos=pozos.merge(mx_tiempos[['pozo','tiempo_perforacion','dias_perforacion']], how='left',on='pozo')
+pozos=pozos.drop_duplicates(subset=['pozo','fecha'], keep='first')
+lista_pozos=list(pd.unique(pozos.pozo))
 
 seleccion_reservas=mx_reservas.NOMBRE.str.match(pat=input_campo)
 info_reservas=mx_reservas.loc[seleccion_reservas]
@@ -100,3 +102,5 @@ len_proy=duracion*12
 
 reservas_aceite=float(info_reservas['CRUDO 2P (MMB)'].sum())
 reservas_gas=float(info_reservas['GAS NATURAL 2P (MMBPCE)'].sum())
+
+pozos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/pozos_'+str(input_campo)+str('.csv'))

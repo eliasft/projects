@@ -52,62 +52,17 @@ def load_db():
 
 
 def inputs():
-    
+
     global pozos, lista, reservas
-    
-    lista=['BEDEL',
-        'EL TREINTA',
-        'CINCO PRESIDENTES',
-        'RODADOR',
-        'GIRALDAS',
-        'COMOAPA',
-        'SUNUAPA',
-        'MUSPAC',
-        'CHIAPAS-COPANO',
-        'ARTESA',
-        'GAUCHO',
-        'NISPERO',
-        'RIO NUEVO',
-        'SITIO GRANDE',
-        'LACAMANGO',
-        'JUSPI',
-        'TEOTLECO',
-        'BACAL',
-        'NELASH',
-        'TIUMUT',
-        'ARROYO PRIETO',
-        'LOS SOLDADOS',
-        'JUJO-TECOMINOACAN',
-        'PAREDON',
-        'JACINTO',
-        'SINI',
-        'CACTUS',
-        'MADREFIL',
-        'CUPACHE',
-        'TINTAL',
-        'TUPILCO',
-        'PACHE',
-        'TOKAL',
-        'CASTARRICAL',
-        'AYOCOTE',
-        'GUARICHO',
-        'RABASA',
-        'IRIDE',
-        'PLATANAL',
-        'CUNDUACAN',
-        'OXIACAQUE',
-        'TERRA',
-        'CAPARROSO PIJIJE ESCUINTLE',
-        'BRILLANTE',
-        'EDEN JOLOTE',
-        'SHISHITO',
-        'SEN',
-        'SAMARIA',
-        'LUNA-PALAPA']
+
+    lista=[
+            'FORTUNA NACIONAL'
+             ]
+
 
     pozos=mx_bd[mx_bd.campo.isin(lista)]
     reservas=mx_reservas[mx_reservas.NOMBRE.isin(lista)]
-    
+
     return
 
 def analyze(pozos):
@@ -197,8 +152,8 @@ def analyze(pozos):
         #df_beginning_production df
 
         return df_beginning_production[variable_column].max()
-    
-    
+
+
     def hiperbolica(t, qi, b, di):
         """
         Hyperbolic decline curve equation
@@ -253,8 +208,16 @@ def analyze(pozos):
     data_pozos['fecha']=pd.to_datetime(data_pozos['fecha'],dayfirst=True)
 
     #Hidrocarburos de análisis
-    hidrocarburo='aceite_Mbd'
-    gas='gas_asociado_MMpcd'
+    if data_pozos.aceite_Mbd.sum() > data_pozos.gas_no_asociado_MMpcd.sum():
+
+        hidrocarburo='aceite_Mbd'
+        gas='gas_asociado_MMpcd'
+
+    else:
+
+        hidrocarburo='gas_no_asociado_MMpcd'
+        gas='gas_no_asociado_MMpcd'
+
     condensado='condensado_Mbd'
     agua='agua_Mbd'
 
@@ -282,10 +245,10 @@ def analyze(pozos):
         serie_produccion=serie_produccion.set_index('pozo')
 
         #Cálculo de la máxima producción inicial
-        qi=get_max_initial_production(serie_produccion, 500, hidrocarburo, 'fecha')
+        qi=get_max_initial_production(serie_produccion, 6, hidrocarburo, 'fecha')
         #qi_g=get_max_initial_production(serie_produccion, 500, gas, 'fecha')
         #qi_c=get_max_initial_production(serie_produccion, 500, condensado, 'fecha')
-        
+
         #if qi_g == 0:
         #    qi_g = 0.00000000000000000000000000000000000000000001
 
@@ -300,7 +263,7 @@ def analyze(pozos):
 
         #Calculo de declinacion porcentual
         serie_produccion['pct_cambio_Qo']=serie_produccion[hidrocarburo].pct_change(periods=12)
-        
+
         #Ajuste Exponencial
         popt_exp, pcov_exp=curve_fit(exponencial, serie_produccion['mes'],
                                     serie_produccion[hidrocarburo],bounds=(0, [qi,20]))
@@ -392,7 +355,7 @@ def analyze(pozos):
                          serie_produccion.Gp_MMMpc.max(),
                          serie_produccion.Cp_MMb.max(),
                          serie_produccion.Wp_MMb.max()]]
-        
+
         ajuste=[[pozo,
                  seleccion_status.at[pozo,'campo'],
                  qi,
@@ -407,7 +370,7 @@ def analyze(pozos):
                  serie_produccion.residual_hiperbolica.sum(),
                  serie_produccion.residual_harmonica.sum()]]
 
-        
+
 
         serie_pozos=serie_pozos.append(serie_produccion,sort=False)
         serie_status=serie_status.append(seleccion_status)
@@ -419,7 +382,7 @@ def analyze(pozos):
     resumen_pozos=resumen_pozos.rename(columns={0:'pozo',
                                                 1:'campo',
                                                 2:'Qi_hist',
-                                                3:'Qo_max',
+                                                3:'Q_last',
                                                 4:'ultima_fecha_online',
                                                 5:'mes_max',
                                                 6:'profundidad_total',
@@ -433,8 +396,8 @@ def analyze(pozos):
                                                14:'Wp'})
 
     resumen_pozos=resumen_pozos.set_index('pozo')
-    
-    
+
+
     parametros=parametros.rename(columns={0:'pozo',
                                           1:'campo',
                                           2:'Qi_hist',
@@ -453,87 +416,88 @@ def analyze(pozos):
 
     ########### RESUMEN CAMPO
     unique_campos=list(pd.unique(serie_pozos.campo))
-    
+
     resumen_campos=pd.DataFrame()
-    
+
     for campo in unique_campos:
-        
+
             serie_resumen=serie_pozos[serie_pozos.campo == campo]
 
             resumen_campos.loc[campo,'Qi']=serie_resumen.Qi_hist.quantile(0.50)
-            resumen_campos.loc[campo,'Np']=(serie_resumen.aceite_Mbd.sum()*30)/1_000
-            resumen_campos.loc[campo,'Gp']=((serie_resumen.gas_asociado_MMpcd.sum()+serie_pozos.gas_no_asociado_MMpcd.sum())*30)/1_000
-            resumen_campos.loc[campo,'Cp']=(serie_resumen.condensado_Mbd.sum()*30)/1_000
-            resumen_campos.loc[campo,'Wp']=(serie_resumen.agua_Mbd.sum()*30)/1_000
-        
-        
-            resumen_campos.loc[campo,'Q_base']=serie_base.aceite_Mbd[serie_base.campo == campo].sum()
+            resumen_campos.loc[campo,'Np']=(serie_resumen[hidrocarburo].sum()*30)/1_000
+            resumen_campos.loc[campo,'Gp']=(serie_resumen[gas].sum()*30)/1_000
+            resumen_campos.loc[campo,'Cp']=(serie_resumen[condensado].sum()*30)/1_000
+            resumen_campos.loc[campo,'Wp']=(serie_resumen[agua].sum()*30)/1_000
+
+
+            resumen_campos.loc[campo,'Q_base']=serie_base[hidrocarburo][serie_base.campo == campo].sum()
             resumen_campos.loc[campo,'G_base']=serie_base[gas][serie_base.campo == campo].sum()
-            resumen_campos.loc[campo,'C_base']=serie_base.condensado_Mbd[serie_base.campo == campo].sum()
-                    
+            resumen_campos.loc[campo,'C_base']=serie_base[condensado][serie_base.campo == campo].sum()
+
             lista_pozos=list(pd.unique(pozos.pozo[pozos.campo == campo]))
             resumen_campos.loc[campo,'pozos_perforados']=len(lista_pozos)
             resumen_campos.loc[campo,'pozos_productores']=len(pd.unique(serie_resumen.index))
             resumen_campos.loc[campo,'pozos_secos']=resumen_campos.loc[campo,'pozos_perforados']- resumen_campos.loc[campo,'pozos_productores']
-            
+
             resumen_campos.loc[campo,'pozos_activos']=len(pd.unique(serie_base.index[serie_base.campo == campo]))
             resumen_campos.loc[campo,'pozos_cerrados']= resumen_campos.loc[campo,'pozos_productores'] - resumen_campos.loc[campo,'pozos_activos']
-            
+
             resumen_campos.loc[campo,'exito_mecanico']=(resumen_campos.loc[campo,'pozos_productores'])/(resumen_campos.loc[campo,'pozos_perforados'])
-            
+
             resumen_campos.loc[campo,'EUR_por_pozo']= resumen_campos.loc[campo,'Np']/resumen_campos.loc[campo,'pozos_productores']
-        
+
             #resumen_produccion=pd.DataFrame()
             #resumen_produccion['maxima_produccion_pozo_Mbd']=pozos.groupby(by='pozo')[hidrocarburo].max()
             #resumen_produccion['EUR_MMb']=pozos.groupby(by='pozo')[hidrocarburo].sum()*30/1_000
             #resumen_produccion=resumen_produccion.sort_values(by='maxima_produccion_pozo_Mbd',ascending=False)
-        
+
             #EUR_max=resumen_produccion.EUR_MMb.max()
-        
+
             #produccion_mensual_media=serie_pozos[hidrocarburo].quantile(0.50)
             #produccion_mensual_max=serie_pozos[hidrocarburo].max()
-        
+
             #produccion_mensual=pd.DataFrame()
             #produccion_mensual['produccion_mensual_campo_Mbd']=pozos.groupby(by=['fecha'])[hidrocarburo].sum()
             #produccion_mensual=produccion_mensual.sort_values(by='produccion_mensual_campo_Mbd',ascending=False)
-        
+
             #fecha_pico=produccion_mensual.max()
-            #display(produccion_mensual.head(1)) 
-            
+            #display(produccion_mensual.head(1))
+
             df=parametros.groupby(by='campo').mean()
             declinacion=pd.DataFrame(index=range(0,(12*15)))
-              
+
             for indice in df.index:
-              
+
                   parametro_qi = resumen_campos.Q_base[resumen_campos.index == indice].quantile(0.50)
                   parametro_b = df.b[df.index == campo].quantile(0.50)
                   parametro_di = df.di_hyp[df.index == campo].quantile(0.50)
-                  
+
                   t=0
-                  
+
                   for t in declinacion.index:
-                  
+
                       qo=parametro_qi/((1.0+parametro_b*parametro_di*t)**(1.0/parametro_b))
                       declinacion.loc[t,indice]=qo
-        
-    
+
+
     declinacion.to_csv(r'/Users/fffte/Desktop/declinacion.csv')
     eur=declinacion.sum()
-    eur.to_csv(r'/Users/fffte/Desktop/eur.csv')
 
+    eur.to_csv(r'/Users/fffte/Desktop/eur.csv')
 
     resumen_campos.to_csv(r'/Users/fffte/Desktop/resumen_campo.csv')
     parametros.to_csv(r'/Users/fffte/Desktop/parametros.csv')
 
+    reservas.to_csv(r'/Users/fffte/Desktop/reservas.csv')
+
     return
 
 def run():
-    
-    load_db()
-    
-    inputs()
-    
-    analyze(pozos)
-    
-    return
 
+    load_db()
+
+    inputs()
+
+    analyze(pozos)
+
+    return

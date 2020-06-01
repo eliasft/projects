@@ -173,7 +173,7 @@ serie_analogos=pd.DataFrame()
 #serie_base=pd.DataFrame()
 #serie_status=pd.DataFrame()
 Qi_analogos=pd.DataFrame()
-gasto_analogos=pd.DataFrame()
+master_analogos=pd.DataFrame()
 
 #Entrada de campo de anális
 data_analogos=analogos
@@ -305,7 +305,12 @@ for campo in unique_analogos:
 
     serie_produccion.loc[:,'b']=popt_hyp[1]
     serie_produccion.loc[:,'di_hyp']=popt_hyp[2]
+
+    serie_produccion.loc[:,'residual_hiperbolica']=(serie_produccion[hidrocarburo]-serie_produccion.hiperbolica)**2
+
     serie_produccion.loc[:,'mes_max']=serie_produccion.mes.max()
+
+    serie_produccion.loc[:,'produccion_acumulada']=(serie_produccion[hidrocarburo].cumsum())*30/1_000
 
     #Resultados de funcion Harmonica
     #serie_produccion.loc[:,'harmonica']=harmonica(serie_produccion['mes'],
@@ -338,8 +343,7 @@ for campo in unique_analogos:
                  popt_hyp[0],
                  popt_hyp[1],
                  popt_hyp[2],
-                 perr_hyp[0],
-                 perr_hyp[1],
+                 serie_produccion.at[campo,'residual_hiperbolica'],
                  serie_produccion.mes.max()]]
                  #popt_harm[0],
                  #popt_harm[1],
@@ -358,7 +362,7 @@ for campo in unique_analogos:
 
     #Plot del Análisis de Declinación de Curvas (DCA)
     #Declare the x- and y- variables that we want to plot against each other
-    y_variables=[hidrocarburo,'harmonica','hiperbolica']
+    y_variables=[hidrocarburo,'hiperbolica']
     x_variable='mes'
 
     #Create the plot title
@@ -370,19 +374,18 @@ for campo in unique_analogos:
     #Resultados de DCA
     serie_analogos=serie_analogos.append(serie_produccion,sort=False)
     #serie_muestra=serie_muestra.append(serie_desde)
-    gasto_analogos=gasto_analogos.append(Qi_analogos,sort=True)
+    master_analogos=master_analogos.append(Qi_analogos,sort=True)
     #serie_status=serie_status.append(seleccion_status)
     #serie_base=serie_base.append(seleccion_base)
 
 
-gasto_analogos=gasto_analogos.rename(columns={0:'campo',
+master_analogos=master_analogos.rename(columns={0:'campo',
                                                 1:'Qi_hist',
                                                 2:'Qi_hyp',
                                                 3:'b',
                                                 4:'di_hyp',
-                                                5:'error_Qi_hyp',
-                                                6:'error_di_hyp',
-                                                7:'mes_max'})
+                                                5:'residual_hiperbolica',
+                                                6:'mes_max'})
                                                 #7:'Qi_harm',
                                                 #8:'di_harm',
                                                 #9:'error_Qi_harm',

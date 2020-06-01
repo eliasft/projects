@@ -15,12 +15,12 @@ len_perfil = user_input.len_perfil
 from analisis.dca_main import hidrocarburo, gas, condensado, agua, master_df, serie_campo
 
 from analisis import dca_analogos
-gasto_analogos = dca_analogos.gasto_analogos
+master_analogos = dca_analogos.master_analogos
 unique_analogos = dca_analogos.unique_analogos
 serie_analogos = dca_analogos.serie_analogos
 
 df_filtrado=pd.DataFrame()
-df_filtrado=gasto_analogos[(gasto_analogos.di_hyp >= master_df.di_hyp.quantile(.30)) & (gasto_analogos.Qi_hist <= master_df.Qi_hist.quantile(0.80))]
+df_filtrado=master_analogos[(master_analogos.di_hyp >= master_df.di_hyp.quantile(.30)) & (master_analogos.Qi_hist <= master_df.Qi_hist.quantile(0.80))]
 df_filtrado=df_filtrado.sort_values('Qi_hist',ascending=False)
 unique_filtro=pd.unique(df_filtrado.campo)
 print('Número de campos muestra para ' +str(input_campo)+': '+str(len(unique_analogos)))
