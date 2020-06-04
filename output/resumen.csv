@@ -1,36 +1,36 @@
 ,0
-Pozos perforados,50
-Pozos productores,42
-Pozos secos,8
-Exito mecanico (%),84.0
-Pozos activos,9
-Pozos cerrados,33
-Profundidad desarrollada MIN,1810.0
-Profundidad desarrollada MAX,1810.0
+Pozos perforados,414
+Pozos productores,410
+Pozos secos,4
+Exito mecanico (%),99.03381642512076
+Pozos activos,130
+Pozos cerrados,280
+Profundidad desarrollada MIN,4760.0
+Profundidad desarrollada MAX,4760.0
 Hidrocarburpo principal,Aceite
 Hidrocarburo secundario,Gas Asociado
-EUR por pozo (MMb),0.7085163767579148
-EUR maxima (MMb),2.463353159999997
-Produccion media mensual (Mbd),0.089462
-Pico de producción mensual (MMb),0.432319
-Vida productiva promedio (meses),270.6190476190476
-Produccion actual de aceite_Mbd,0.43088431724170007
-Progduccion actual de gas_asociado_MMpcd,0.41704595517240006
+EUR por pozo (MMb),0.024166945072142478
+EUR maxima (MMb),0.12523205884058758
+Produccion media mensual (Mbd),0.01002058387095
+Pico de producción mensual (MMb),0.5416489999999999
+Vida productiva promedio (meses),74.67073170731707
+Produccion actual de aceite_Mbd,0.864588356463469
+Progduccion actual de gas_asociado_MMpcd,3.9281347929650527
 Produccion actual de condensado_Mbd,0.0
-RGA/RGC pc/b,401.7837966155342
-Corte de agua %,0.7310264211919619
+RGA/RGC pc/b,19287.514259196345
+Corte de agua %,0.49421886308609064
 Gravedad API,N/A
 C1,N/A
 C2,N/A
 C3,N/A
 C4,N/A
 C5+,N/A
-Np,32.50488789
-Gp,52.88316213
+Np,9.908447479578417
+Gp,21.458485196422842
 Cp,0.0
-Wp,6.712904695459944
-Gas Equivalente,6.747525606952888
-OOIP,107.2034431
-FR Aceite,0.30320749921883805
-OGIP,147.8067331
-FR Gas,0.3577858803916694
+Wp,1.6831071334756864
+Gas Equivalente,3.576414199403807
+OOIP,969.9734551
+FR Aceite,0.01021517385602774
+OGIP,421.6466252
+FR Gas,0.050892107072467184

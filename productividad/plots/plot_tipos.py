@@ -14,6 +14,7 @@ len_perfil = user_input.len_perfil
 
 from analisis import pozos_tipo
 perfil = pozos_tipo.perfil
+perfil_norm = pozos_tipo.perfil_norm
 
 from analisis.dca_main import hidrocarburo, gas, condensado, agua
 
@@ -67,6 +68,27 @@ ax7.set_ylim(0)
 
 plt.xlim(0,len_perfil)
 plt.title('EUR - Pozos tipo - ' +str(input_campo),
+         fontsize=24,
+         fontweight='semibold')
+plt.show()
+
+########### PERFIL NORMALIZADO
+
+fig_n, ax_n = plt.subplots(figsize=(15,10))
+
+ax_n.plot(perfil_norm.min_qi,linestyle='dotted',color='red',alpha=0.5)
+ax_n.plot(perfil_norm.baja,label='Qi BAJA',linestyle='solid',color='red')
+ax_n.plot(perfil_norm.media,label='Qi MEDIA',linestyle='solid',color='blue')
+ax_n.plot(perfil_norm.alta,label='Qi ALTA',linestyle='solid',color='green')
+ax_n.plot(perfil_norm.max_qi,linestyle='dotted',color='green',alpha=0.5)
+ax_n.fill_between(perfil_norm.index,perfil_norm.baja,perfil_norm.alta,alpha=0.05,color='green')
+
+ax_n.legend(loc='best',fontsize='medium')
+ax_n.set_ylabel('Qo (Mbd / MMpcd)'+str(hidrocarburo))
+ax_n.set_ylim(0)
+
+plt.xlim(0,len_perfil)
+plt.title('Perfil de produccion NORMALIZADO - Pozos tipo - ' +str(input_campo),
          fontsize=24,
          fontweight='semibold')
 plt.show()

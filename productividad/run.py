@@ -75,10 +75,15 @@ from entrada import user_input
 
 from analisis import dca_main
 from analisis import pozos_tipo
+from analisis import dca_analogos
 from analisis import pdp
+
 from analisis.dca_main import *
+from analisis.dca_analogos import *
 from analisis.pozos_tipo import *
 from analisis.pdp import *
+from analisis.muestreo import *
 
 from output import resultados
+
 resultados.run_results()

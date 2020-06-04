@@ -133,6 +133,7 @@ for x in df:
 
 perfil=perfil.set_index('mes')
 
+
 for x in perfil.columns:
 
     perfil['EUR_'+str(x)]=(perfil[x].cumsum())*30/1_000
@@ -162,6 +163,41 @@ d = {'Qi_hist': [tipo1.Qi_hist.mean(), tipo2.Qi_hist.mean(),tipo3.Qi_hist.mean()
 
 parametros = pd.DataFrame(data=d,index=['BAJA','MEDIA','ALTA'])
 
+#########################  PERFIL NORMALIZADO   #####################
+
+df_tipos = tipos.groupby(by='tipo').mean()
+
+q_min=tipos.Qi_hist.min()
+q_baja=df_tipos.loc['BAJA'].Qi_hist
+q_media=df_tipos.loc['MEDIA'].Qi_hist
+q_alta=df_tipos.loc['ALTA'].Qi_hist
+q_max=tipos.Qi_hist.max()
+
+d_min=df_tipos.loc['BAJA'].di_hyp
+d_baja=df_tipos.loc['BAJA'].di_hyp
+d_media=df_tipos.loc['MEDIA'].di_hyp
+d_alta=df_tipos.loc['ALTA'].di_hyp
+d_max=df_tipos.loc['ALTA'].di_hyp
+
+b_min=df_tipos.loc['BAJA'].b
+b_baja=df_tipos.loc['BAJA'].b
+b_media=df_tipos.loc['MEDIA'].b
+b_alta=df_tipos.loc['ALTA'].b
+b_max=df_tipos.loc['ALTA'].b
+
+perfil_norm=pd.DataFrame()
+
+for x in df:
+
+    perfil_norm['mes']=df.periodo
+
+    perfil_norm['min_qi']=((q_min/q_min)/((1.0+b_min*d_min*df.periodo)**(1.0/b_min)))
+    perfil_norm['baja']=((q_baja/q_baja)/((1.0+b_baja*d_baja*df.periodo)**(1.0/b_baja)))
+    perfil_norm['media']=((q_media/q_media)/((1.0+b_media*d_media*df.periodo)**(1.0/b_media)))
+    perfil_norm['alta']=((q_alta/q_alta)/((1.0+b_alta*d_alta*df.periodo)**(1.0/b_alta)))
+    perfil_norm['max_qi']=((q_max/q_max)/((1.0+b_max*d_max*df.periodo)**(1.0/b_max)))
+
+perfil_norm=perfil_norm.set_index('mes')
 
 ###########GENERACION DE ARCHIVO DE RMA's
 

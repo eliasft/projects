@@ -26,6 +26,7 @@ baja=0.20
 #INPUT DE CAMPO
 input_campo = str(input("Nombre de campo/contrato/asignacion: "))
 
+'''
 #INPUT DE ANALOGOS
 
 input_analogos=input("Analisis DCA Analogos (Y/''): ")
@@ -33,10 +34,13 @@ input_analogos=str(input_analogos)
 
 if input_analogos == str(''):
     input_analogos='N'
+'''
 
+'''
 #INPUT DE RANGO DE MUESTRA
 
 input_fecha=input("Tomar muestra desde fecha (yyyy-mm-dd): ")
+'''
 
 #INPUT DE ARCHIVOS
 

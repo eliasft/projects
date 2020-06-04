@@ -16,7 +16,6 @@ from entrada import user_input
 
 pozos = user_input.pozos
 info_reservas = user_input.info_reservas
-input_fecha = user_input.input_fecha
 
 #############     FUNCIONES PARA DCA   #############
 
@@ -321,8 +320,8 @@ for pozo in unique_well_list:
         perr_harm = np.sqrt(np.diag(pcov_harm))
         perr_exp = np.sqrt(np.diag(pcov_exp))
 
-
-        serie_produccion.loc[:,'Np_MMb']=(serie_produccion[hidrocarburo].cumsum())*30/1_000
+        serie_produccion.loc[:,'EUR']=(serie_produccion[hidrocarburo].cumsum())*30/1_000
+        serie_produccion.loc[:,'Np_MMb']=(serie_produccion['aceite_Mbd'].cumsum())*30/1_000
         serie_produccion.loc[:,'Gp_MMMpc']=(serie_produccion[gas].cumsum())*30/1_000
         serie_produccion.loc[:,'Cp_MMb']=(serie_produccion[condensado].cumsum())*30/1_000
         serie_produccion.loc[:,'Wp_MMb']=(serie_produccion[agua].cumsum())*30/1_000
@@ -351,8 +350,11 @@ for pozo in unique_well_list:
              seleccion_status.at[pozo,'first_oil'],
              serie_produccion.fecha.max(),
              serie_produccion.loc[:,'mes'].max(),
+             serie_produccion[hidrocarburo].quantile(0.50),
+             float(seleccion_status.at[pozo,hidrocarburo]),
              float(seleccion_status.at[pozo,'profundidad_total']),
              float(seleccion_status.at[pozo,'dias_perforacion']),
+             serie_produccion.EUR.max(),
              serie_produccion.Np_MMb.max(),
              serie_produccion.Gp_MMMpc.max(),
              serie_produccion.Cp_MMb.max(),
@@ -421,47 +423,50 @@ master_df=master_df.rename(columns={0:'pozo',
                             3:'estado_actual',
                             4:'trayectoria',
                             5:'first_oil',
-                            6:'ultima_produccion',
+                            6:'last_date',
                             7:'mes_max',
-                            8:'profundidad_total',
-                            9:'dias_perforacion',
-                           10:'Np',
-                           11:'Gp',
-                           12:'Cp',
-                           13:'Wp',
-                           14:'acum_BOE',
-                           15:'relacion_gas',
-                           16:'corte_agua',
-                           17:'Qi_hyp',
-                           18:'b',
-                           19:'di_hyp',
-                           20:'Qi_harm',
-                           21:'di_harm',
-                           22:'Qi_exp',
-                           23:'di_exp',
-                           24:'Qi_hyp_gas',
-                           25:'b_gas',
-                           26:'di_hyp_gas',
-                           27:'Qi_harm_gas',
-                           28:'di_harm_gas',
-                           29:'Qi_exp_gas',
-                           30:'di_exp_gas',
-                           31:'Qi_hyp_condensado',
-                           32:'b_condensado',
-                           33:'di_hyp_condensado',
-                           34:'Qi_harm_condensado',
-                           35:'di_harm_condensado',
-                           36:'Qi_exp_condensado',
-                           37:'di_exp_condensado',
-                           38:'RSS_exponencial',
-                           39:'RSS_hiperbolica',
-                           40:'RSS_harmonica',
-                           41:'RSS_gas_exponencial',
-                           42:'RSS_gas_hiperbolica',
-                           43:'RSS_gas_harmonica',
-                           44:'RSS_condensado_exponencial',
-                           45:'RSS_condensado_hiperbolica',
-                           46:'RSS_condensado_harmonica',
+                            8:'mean_q',
+                            9:'last_q',
+                           10:'profundidad_total',
+                           11:'dias_perforacion',
+                           12:'EUR',
+                           13:'Np',
+                           14:'Gp',
+                           15:'Cp',
+                           16:'Wp',
+                           17:'acum_BOE',
+                           18:'relacion_gas',
+                           19:'corte_agua',
+                           20:'Qi_hyp',
+                           21:'b',
+                           22:'di_hyp',
+                           23:'Qi_harm',
+                           24:'di_harm',
+                           25:'Qi_exp',
+                           26:'di_exp',
+                           27:'Qi_hyp_gas',
+                           28:'b_gas',
+                           29:'di_hyp_gas',
+                           30:'Qi_harm_gas',
+                           31:'di_harm_gas',
+                           32:'Qi_exp_gas',
+                           33:'di_exp_gas',
+                           34:'Qi_hyp_condensado',
+                           35:'b_condensado',
+                           36:'di_hyp_condensado',
+                           37:'Qi_harm_condensado',
+                           38:'di_harm_condensado',
+                           39:'Qi_exp_condensado',
+                           40:'di_exp_condensado',
+                           41:'RSS_exponencial',
+                           42:'RSS_hiperbolica',
+                           43:'RSS_harmonica',
+                           44:'RSS_gas_exponencial',
+                           45:'RSS_gas_hiperbolica',
+                           46:'RSS_gas_harmonica',
+                           47:'RSS_condensado_exponencial',
+                           48:'RSS_condensado_hiperbolica',
+                           49:'RSS_condensado_harmonica',
                            })
 
 master_df=master_df.set_index('pozo')
@@ -534,36 +539,36 @@ else:
     FR_gas = float(Gp/OGIP)
 
 try:
-    info_reservas['fr_crudo_1P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'])/float(info_reservas['VO CRUDO 1P (MMB)'])
-    info_reservas['fr_crudo_2P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'])/float(info_reservas['VO CRUDO 2P (MMB)'])
-    info_reservas['fr_crudo_3P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'])/float(info_reservas['VO CRUDO 3P (MMB)'])
+    info_reservas['fr_crudo_1P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'].sum())/float(info_reservas['VO CRUDO 1P (MMB)'].sum())
+    info_reservas['fr_crudo_2P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'].sum())/float(info_reservas['VO CRUDO 2P (MMB)'].sum())
+    info_reservas['fr_crudo_3P']=float(info_reservas['PRODUCCION ACUMULADA CRUDO (MMB)'].sum())/float(info_reservas['VO CRUDO 3P (MMB)'].sum())
 except ZeroDivisionError:
     print('Division entre cero')
 else:
     pass
 
 try:
-    info_reservas['fr_gas_1P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'])/float(info_reservas['VO GAS 1P (MMMPC)'])
-    info_reservas['fr_gas_2P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'])/float(info_reservas['VO GAS 2P (MMMPC)'])
-    info_reservas['fr_gas_3P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'])/float(info_reservas['VO GAS 3P (MMMPC)'])
+    info_reservas['fr_gas_1P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'].sum())/float(info_reservas['VO GAS 1P (MMMPC)'].sum())
+    info_reservas['fr_gas_2P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'].sum())/float(info_reservas['VO GAS 2P (MMMPC)'].sum())
+    info_reservas['fr_gas_3P']=float(info_reservas['PRODUCCION ACUMULADA GAS (MMMPC)'].sum())/float(info_reservas['VO GAS 3P (MMMPC)'].sum())
 except ZeroDivisionError:
     print('Division entre cero')
 else:
     pass
 
 try:
-    info_reservas['fr_condensado_1P']=float(Cp)/float(info_reservas['CONDENSADO 1P (MMB)'])
-    info_reservas['fr_condensado_2P']=float(Cp)/float(info_reservas['CONDENSADO 2P (MMB)'])
-    info_reservas['fr_condensado_3P']=float(Cp)/float(info_reservas['CONDENSADO 3P (MMB)'])
+    info_reservas['fr_condensado_1P']=float(Cp)/float(info_reservas['CONDENSADO 1P (MMB)'].sum())
+    info_reservas['fr_condensado_2P']=float(Cp)/float(info_reservas['CONDENSADO 2P (MMB)'].sum())
+    info_reservas['fr_condensado_3P']=float(Cp)/float(info_reservas['CONDENSADO 3P (MMB)'].sum())
 except ZeroDivisionError:
     print('Division entre cero')
 else:
     pass
 
 try:
-    info_reservas['fr_equivalente_1P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'])/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 1P (MMBPCE)'])
-    info_reservas['fr_equivalente_2P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'])/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 2P (MMBPCE)'])
-    info_reservas['fr_equivalente_3P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'])/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 3P (MMBPCE)'])
+    info_reservas['fr_equivalente_1P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'].sum())/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 1P (MMBPCE)'].sum())
+    info_reservas['fr_equivalente_2P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'].sum())/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 2P (MMBPCE)'].sum())
+    info_reservas['fr_equivalente_3P']=float(info_reservas['PETROLEO CRUDO EQUIVALENTE (MMBPCE)'].sum())/float(info_reservas['PETROLEO CRUDO EQUIVALENTE 3P (MMBPCE)'].sum())
 except ZeroDivisionError:
     print('Division entre cero')
 else:
@@ -630,7 +635,7 @@ resumen=pd.Series(data=[pozos_perforados,
                      )
 #print(resumen)
 
-
+'''
 #################### SERIE MUESTRA (since predetermined date)
 
 if input_fecha != str(''):
@@ -660,3 +665,5 @@ if input_fecha != str(''):
         serie_desde['mes']=(serie_desde[hidrocarburo] > 0).cumsum()
 
         serie_muestra=serie_muestra.append(serie_desde)
+
+'''

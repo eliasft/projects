@@ -1,0 +1,73 @@
+volumen = {
+            'vo_aceite_1p': 0.00,
+            'vo_aceite_2p': 0.00,
+            'vo_aceite_3p': 0.00,
+            'vo_gas_1p': 446.05,
+            'vo_gas_2p': 487.48,
+            'vo_gas_3p': 552.51,
+            'vo_condensado_1p': 0.00,
+            'vo_condensado_2p': 0.00,
+            'vo_condensado_3p': 0.00,
+            'vo_equivalente_1p': 0.00,
+            'vo_equivalente_2p': 0.00,
+            'vo_equivalente_3p': 0.00,
+            'aceite_1p': 0.00,
+            'aceite_2p': 0.00,
+            'aceite_3p': 0.00,
+            'gas_1p': 86.57,
+            'gas_2p': 138.16,
+            'gas_3p': 166.00,
+            'condensado_1p': 1.78,
+            'condensado_2p': 2.84,
+            'condensado_3p': 3.41,
+            'equivalente_1p': 16.83,
+            'equivalente_2p': 26.85,
+            'equivalente_3p': 32.27,
+            'fr_aceite_1p': 0.00,
+            'fr_aceite_2p': 0.00,
+            'fr_aceite_3p': 0.00,
+            'fr_gas_1p': 0.48,
+            'fr_gas_2p': 0.44,
+            'fr_gas_3p': 0.39,
+            'fr_condensado_1p': 0.00,
+            'fr_condensado_2p': 0.00,
+            'fr_condensado_3p': 0.00,
+            'fr_equivalente_1p': 0.00,
+            'fr_equivalente_2p': 0.00,
+            'fr_equivalente_3p': 0.00,
+          }
+
+
+
+CUERVITO
+
+VO CRUDO 1P (MMB)                            0.00
+VO GAS 1P (MMMPC)                          446.05
+PETROLEO CRUDO EQUIVALENTE 1P (MMBPCE)      16.83
+CRUDO 1P (MMB)                               0.00
+GAS NATURAL 1P (MMBPCE)                     86.57
+CONDENSADO 1P (MMB)                          1.78
+VO CRUDO 2P (MMB)                            0.00
+VO GAS 2P (MMMPC)                          487.48
+PETROLEO CRUDO EQUIVALENTE 2P (MMBPCE)      26.85
+CRUDO 2P (MMB)                               0.00
+GAS NATURAL 2P (MMBPCE)                    138.16
+CONDENSADO 2P (MMB)                          2.84
+VO CRUDO 3P (MMB)                            0.00
+VO GAS 3P (MMMPC)                          552.51
+PETROLEO CRUDO EQUIVALENTE 3P (MMBPCE)      32.27
+CRUDO 3P (MMB)                               0.00
+GAS NATURAL 3P (MMBPCE)                    166.00
+CONDENSADO 3P (MMB)                          3.41
+PRODUCCION ACUMULADA CRUDO (MMB)             0.00
+PRODUCCION ACUMULADA GAS (MMMPC)           213.80
+PETROLEO CRUDO EQUIVALENTE (MMBPCE)         41.51
+fr_gas_1P                                    0.48
+fr_gas_2P                                    0.44
+fr_gas_3P                                    0.39
+fr_condensado_1P                             2.35
+fr_condensado_2P                             1.47
+fr_condensado_3P                             1.22
+fr_equivalente_1P                            2.47
+fr_equivalente_2P                            1.55
+fr_equivalente_3P                            1.29
