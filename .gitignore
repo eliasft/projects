@@ -103,3 +103,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 modulo_productividad_v1.py
+app1/data/mx_tiempos.csv
+app1/data/mx_full.csv
+app1/data/mx_campos.csv
+app1/data/mx_reservas.csv

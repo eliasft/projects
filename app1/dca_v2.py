@@ -120,7 +120,9 @@ def carga_bd():
 
     tic=timeit.default_timer()
 
-    mx_bd=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_full.csv',
+    directorio = os.getcwd()
+
+    mx_bd=pd.read_csv(directorio + '/data/mx_full.csv',
                           usecols=['fecha',
                                   'pozo',
                                   'aceite_Mbd',
@@ -143,15 +145,15 @@ def carga_bd():
                                   'contrato'],
                                   low_memory=True)
 
-    mx_reservas=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_reservas.csv',
+    mx_reservas=pd.read_csv(directorio + '/data/mx_reservas.csv',
                           index_col=0)
 
-    mx_tiempos=pd.read_csv("/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_tiempos.csv",
+    mx_tiempos=pd.read_csv(directorio + '/data/mx_tiempos.csv',
                           index_col=0,
                           parse_dates=True,
                           keep_default_na=False)
 
-    mx_campos=pd.read_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/mexico/mx_campos.csv')
+    mx_campos=pd.read_csv(directorio + '/data/mx_campos.csv')
 
 
 
@@ -347,7 +349,7 @@ def inputs():
 
 
     #ARCHIVO CSV CON BASE DE DATOS DE POZOS
-    #pozos.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
+    #pozos.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/'+str(input_campo)+str('.csv'))
 
 
     ####################        INPUTS VARIABLES DE EVALUACION         #####################
@@ -990,8 +992,8 @@ def analisis_dca(pozos):
     #fig,ax= plt.subplots(figsize=(15,8))
     #ax.scatter(fecha_pico.index,fecha_pico)
 
-    #serie_campo.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-    #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
+    #serie_campo.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+    #gasto.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/gasto.csv')
 
     return
 
@@ -2096,8 +2098,8 @@ def plot_analogos():
     plt.title('Gasto mensual | Analogos | ' +str(input_campo))
     plt.legend(loc='best')
 
-    #serie_analogos.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
-    #gasto.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/gasto.csv')
+    #serie_analogos.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/'+str(input_campo)+'_dca.csv')
+    #gasto.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/gasto.csv')
 
     return
 
@@ -2114,25 +2116,25 @@ def plot_analogos():
 def generar_archivos():
 
 
-    serie_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_campo.csv')
-    dfx.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_resumen.csv')
-    serie_base.to_csv(r'/Users/fffte/Documents/GitHub/projects//output/serie_base.csv')
-    serie_rma.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_rma.csv')
+    serie_campo.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_campo.csv')
+    dfx.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_resumen.csv')
+    serie_base.to_csv(r'/Users/felias/Documents/GitHub/projects//output/serie_base.csv')
+    serie_rma.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_rma.csv')
 
-    resumen.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/resumen.csv')
-    info_campo.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/info_campo.csv')
+    resumen.to_csv(r'/Users/felias/Documents/GitHub/projects/output/resumen.csv')
+    info_campo.to_csv(r'/Users/felias/Documents/GitHub/projects/output/info_campo.csv')
 
-    gasto.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_gasto.csv')
-    tipos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_tipos.csv')
+    gasto.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_gasto.csv')
+    tipos.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_tipos.csv')
 
-    parametros.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/parametros.csv')
-    #perfil.to_csv(r'/Users/fffte/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
-    perfil.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/perfiles_tipo.csv')
+    parametros.to_csv(r'/Users/felias/Documents/GitHub/projects/output/parametros.csv')
+    #perfil.to_csv(r'/Users/felias/ainda_drive/python/csv/benchmark/perfl_'+str(input_campo)+'.csv')
+    perfil.to_csv(r'/Users/felias/Documents/GitHub/projects/output/perfiles_tipo.csv')
 
     if input_analogos == 'Y':
 
-          serie_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_analogos.csv')
-          gasto_analogos.to_csv(r'/Users/fffte/Documents/GitHub/projects/output/gasto_analogos.csv')
+          serie_analogos.to_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_analogos.csv')
+          gasto_analogos.to_csv(r'/Users/felias/Documents/GitHub/projects/output/gasto_analogos.csv')
 
     return
 

@@ -27,7 +27,7 @@ from app import app
 #app.layout = no_panel.layout
 
 app.layout = html.Div([
-    html.H1('Caracterización del campo: Lacamango'),
+    html.H1('Caracterización del campo'),
     dcc.Tabs(id="tabs", value='tab-1', children=[
         dcc.Tab(label='Informacion general', value='tab-1'),
         dcc.Tab(label='Intervenciones ejecutadas en el campo', value='tab-2'),

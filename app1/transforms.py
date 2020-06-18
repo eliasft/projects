@@ -12,13 +12,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-df = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_resumen.csv')
+import os
 
-df_info = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/info_campo.csv')
+directorio = os.getcwd()
+
+df = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_resumen.csv')
+
+df_info = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/info_campo.csv')
 df_info = df_info.transpose()
 df_info = df_info.rename(columns={'':'Caracteristicas',0:'Datos'})
 
-df_resumen = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/resumen.csv',
+df_resumen = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/resumen.csv',
                         header=0,
                         index_col=0)
 
@@ -30,7 +34,7 @@ status=df.estado_actual.value_counts()
 
 arq=df.trayectoria.value_counts()
 
-dfx = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_campo.csv',
+dfx = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_campo.csv',
                         header=0,
                         index_col=0)
 dfx=dfx.groupby(by='pozo').mean()
@@ -38,14 +42,14 @@ intervenciones=dfx.ano_de_perforacion.value_counts()
 intervenciones.index=pd.Index.astype(intervenciones.index,dtype='int64')
 intervenciones=intervenciones.sort_index(ascending=True)
 
-dfxx = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_campo.csv')
+dfxx = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_campo.csv')
 dfxx['fecha']=pd.to_datetime(dfxx['fecha'],dayfirst=True)
 dfxx=dfxx.set_index('fecha')
 produccion=dfxx.resample('Y').mean()
 produccion['year']=produccion.index.year
 
 
-df_tipos = pd.read_csv(r'/Users/fffte/Documents/GitHub/projects/output/serie_tipos.csv',
+df_tipos = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_tipos.csv',
                 header=0,
                 index_col=0
                 )
