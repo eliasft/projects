@@ -1,8 +1,0 @@
-from productividad import run
-
-from productividad.analisis.pozos_tipo import parametros, master_df, serie_rma
-
-
-variable = parametros
-variable2 = master_df
-variable3 = serie_rma
