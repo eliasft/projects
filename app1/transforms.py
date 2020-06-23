@@ -16,7 +16,7 @@ import os
 
 directorio = os.getcwd()
 
-df = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_resumen.csv')
+df = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/serie_tipos.csv')
 
 df_info = pd.read_csv(r'/Users/felias/Documents/GitHub/projects/output/info_campo.csv')
 df_info = df_info.transpose()

@@ -6,7 +6,7 @@ import dash_table
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
-import sidepanel, tab1, tab2, tab3, tab4, tab5, tab6
+import sidepanel, tab1, tab2, tab3, tab4, tab5, tab6, tab8
 import transforms
 
 import dash
@@ -35,6 +35,7 @@ app.layout = html.Div([
         dcc.Tab(label='Produccion historica por tipo de hidrocarburo', value='tab-4'),
         dcc.Tab(label='Tipos', value='tab-5'),
         dcc.Tab(label='RGA y corte de agua', value='tab-6'),
+        dcc.Tab(label='Exploracion', value='tab-8'),
     ]),
     html.Div(id='tabs-content')
 ])
@@ -55,6 +56,8 @@ def render_content(tab):
        return tab5.layout
     elif tab == 'tab-6':
        return tab6.layout
+    elif tab == 'tab-8':
+       return tab8.layout
 
 @app.callback(dash.dependencies.Output('page-1-content', 'children'),
               [dash.dependencies.Input('page-1-dropdown', 'value')])

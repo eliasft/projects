@@ -197,19 +197,22 @@ def inputs():
     input_campo = str(input("Nombre de campo/contrato/asignacion: "))
 
     #TIPO DE BUSQUEDA
-    input_bulk=str(input('Numero de campos de analisis: '))
+    #input_bulk=str(input('Numero de campos de analisis: '))
+    input_bulk=''
 
     #INPUT DE ANALOGOS
 
-    input_analogos=input("Analisis DCA Analogos (Y/''): ")
-    input_analogos=str(input_analogos)
+    #input_analogos=input("Analisis DCA Analogos (Y/''): ")
+    #input_analogos=str(input_analogos)
 
-    if input_analogos == str(''):
-        input_analogos='N'
+    #if input_analogos == str(''):
+    #    input_analogos='N'
+    input_analogos=''
 
     #INPUT DE RANGO DE MUESTRA
 
-    input_fecha=input("Tomar muestra desde fecha (yyyy-mm-dd): ")
+    #input_fecha=input("Tomar muestra desde fecha (yyyy-mm-dd): ")
+    input_fecha=''
 
     #INPUT DE ARCHIVOS
 
@@ -221,11 +224,12 @@ def inputs():
 
     #INPUT DE PLOTS
 
-    input_plots=input("Generar Plots (Y/''): ")
-    input_plots=str(input_plots)
+    #input_plots=input("Generar Plots (Y/''): ")
+    #input_plots=str(input_plots)
+    input_plots=''
 
-    if input_plots == str(''):
-        input_plots='N'
+    #if input_plots == str(''):
+    #    input_plots='N'
 
     #INPUTS ECONOMICOS
 
